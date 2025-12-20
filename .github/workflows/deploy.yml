@@ -34,6 +34,19 @@ jobs:
           cd backend
           npm ci
           npx serverless deploy --stage prod
+      - name: Discover API base URL (prod)
+        run: |
+          cd backend
+          # Try to parse httpApiUrl from serverless info
+          INFO_OUTPUT=$(npx serverless info --stage prod --verbose || true)
+          API_URL=$(printf "%s" "$INFO_OUTPUT" | grep -Eo 'https?://[^ ]+' | head -n1)
+          if [ -z "$API_URL" ]; then
+            echo "Failed to detect API URL from serverless info output:" >&2
+            echo "$INFO_OUTPUT" >&2
+            exit 1
+          fi
+          echo "Detected API URL: $API_URL"
+          echo "EXPO_PUBLIC_API_BASE_URL=$API_URL" >> "$GITHUB_ENV"
       - name: Build web front (Expo export)
         run: |
           npm ci
