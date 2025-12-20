@@ -13,8 +13,18 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # Expo web export output directory (Expo 51 default is 'dist')
+      WEB_BUILD_DIR: dist
+      # S3 bucket hosting the static site (set to your bucket name)
+      S3_BUCKET: pumpfoilmap-prod-static
+      # CloudFront distribution ID for cache invalidation
+      CLOUDFRONT_DISTRIBUTION_ID: E0000000000000
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::527220914588:role/PumpfoilMapDeployer
@@ -24,3 +34,26 @@ jobs:
           cd backend
           npm ci
           npx serverless deploy --stage prod
+      - name: Build web front (Expo export)
+        run: |
+          npm ci
+          npx expo export --platform web --output-dir "$WEB_BUILD_DIR"
+      - name: Upload static to S3
+        run: |
+          # Sync all assets except index.html with long cache
+          aws s3 sync "$WEB_BUILD_DIR/" "s3://$S3_BUCKET/" \
+            --delete \
+            --exclude "index.html" \
+            --cache-control "public,max-age=31536000,immutable"
+
+          # Upload index.html with short cache to allow quick updates
+          if [ -f "$WEB_BUILD_DIR/index.html" ]; then
+            aws s3 cp "$WEB_BUILD_DIR/index.html" "s3://$S3_BUCKET/index.html" \
+              --cache-control "public,max-age=0,must-revalidate" \
+              --content-type "text/html; charset=utf-8"
+          fi
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
+            --paths "/*"
