@@ -37,15 +37,20 @@ jobs:
       - name: Discover API base URL (prod)
         run: |
           cd backend
-          # Try to parse httpApiUrl from serverless info
+          # Parse base httpApiUrl from serverless info (avoid endpoint URLs like .../spots)
           INFO_OUTPUT=$(npx serverless info --stage prod --verbose || true)
-          API_URL=$(printf "%s" "$INFO_OUTPUT" | grep -Eo 'https?://[^ ]+' | head -n1)
+          # Prefer explicit httpApiUrl line
+          API_URL=$(printf "%s" "$INFO_OUTPUT" | sed -n 's/^[[:space:]]*httpApiUrl:[[:space:]]*\(https:\/\/[^[:space:]]*\).*/\1/p' | head -n1)
+          # Fallback: first execute-api URL, stripped of any path
           if [ -z "$API_URL" ]; then
-            echo "Failed to detect API URL from serverless info output:" >&2
+            API_URL=$(printf "%s" "$INFO_OUTPUT" | grep -Eo 'https://[^[:space:]]+' | grep -E 'execute-api\.[^/]+\.amazonaws\.com' | head -n1 | sed -E 's#(https://[^/]+)(/.*)?#\1#')
+          fi
+          if [ -z "$API_URL" ]; then
+            echo "Failed to detect API base URL from serverless info output:" >&2
             echo "$INFO_OUTPUT" >&2
             exit 1
           fi
-          echo "Detected API URL: $API_URL"
+          echo "Detected API base URL: $API_URL"
           echo "EXPO_PUBLIC_API_BASE_URL=$API_URL" >> "$GITHUB_ENV"
       - name: Build web front (Expo export)
         run: |
