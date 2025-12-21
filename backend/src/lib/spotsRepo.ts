@@ -9,7 +9,7 @@ const IS_AWS = !!process.env.AWS_EXECUTION_ENV;
 const IS_OFFLINE = process.env.IS_OFFLINE === 'true';
 const FORCE_INMEMORY = process.env.USE_INMEMORY === 'true';
 const USE_INMEMORY = !IS_AWS && (FORCE_INMEMORY || IS_OFFLINE);
-const DEBUG = process.env.PFM_DEBUG === '1' || IS_OFFLINE;
+const DEBUG = true; // process.env.PFM_DEBUG === '1' || IS_OFFLINE;
 if (DEBUG) {
   console.log('[repo] mode', {
     USE_INMEMORY,
