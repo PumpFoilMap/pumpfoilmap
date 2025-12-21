@@ -23,15 +23,6 @@ jobs:
       CLOUDFRONT_DISTRIBUTION_ID: E1W0RWEBKTTGFU
     steps:
       - uses: actions/checkout@v4
-      - name: Debug GitHub OIDC context
-        run: |
-          echo "Repo:        $GITHUB_REPOSITORY"
-          echo "Ref:         $GITHUB_REF"
-          echo "Event:       $GITHUB_EVENT_NAME"
-          echo "Workflow:    $GITHUB_WORKFLOW"
-          echo "Actor:       $GITHUB_ACTOR"
-          echo "Run attempt: $GITHUB_RUN_ATTEMPT"
-          echo "sub: ${{ steps.id-token.outputs.sub }}"
       - uses: actions/setup-node@v4
         with:
           node-version: 20

@@ -4,14 +4,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-const USE_INMEMORY = process.env.USE_INMEMORY === 'true';
-const DEBUG = process.env.PFM_DEBUG === '1' || process.env.IS_OFFLINE === 'true';
+// Only allow in-memory store when NOT running on AWS Lambda (production)
+const IS_AWS = !!process.env.AWS_EXECUTION_ENV;
+const IS_OFFLINE = process.env.IS_OFFLINE === 'true';
+const FORCE_INMEMORY = process.env.USE_INMEMORY === 'true';
+const USE_INMEMORY = !IS_AWS && (FORCE_INMEMORY || IS_OFFLINE);
+const DEBUG = process.env.PFM_DEBUG === '1' || IS_OFFLINE;
 if (DEBUG) {
   console.log('[repo] mode', {
     USE_INMEMORY,
+    FORCE_INMEMORY,
+    IS_AWS,
     IS_OFFLINE: process.env.IS_OFFLINE,
     DYNAMODB_ENDPOINT: process.env.DYNAMODB_ENDPOINT || null
   });
+  if (FORCE_INMEMORY && IS_AWS) {
+    console.warn('[repo] USE_INMEMORY=true ignoré en environnement AWS (prod) — utilisation de DynamoDB');
+  }
   if (USE_INMEMORY && process.env.DYNAMODB_ENDPOINT) {
     console.warn('[repo] USE_INMEMORY=true alors que DYNAMODB_ENDPOINT est défini — la DB locale ne sera pas utilisée.');
   }

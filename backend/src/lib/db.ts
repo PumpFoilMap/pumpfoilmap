@@ -2,12 +2,15 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 const IS_OFFLINE = process.env.IS_OFFLINE === 'true';
+const IS_AWS = !!process.env.AWS_EXECUTION_ENV;
 const REGION = process.env.AWS_REGION || 'eu-west-3';
 const DEBUG = process.env.PFM_DEBUG === '1' || IS_OFFLINE;
 
 export const TABLE_SPOTS = process.env.TABLE_SPOTS as string;
 
-const ENDPOINT = process.env.DYNAMODB_ENDPOINT || (IS_OFFLINE ? 'http://localhost:8000' : undefined);
+// In AWS (prod), ignore any local endpoint override; only honor endpoint in local/offline
+const endpointEnv = process.env.DYNAMODB_ENDPOINT;
+const ENDPOINT = (!IS_AWS && endpointEnv) ? endpointEnv : (IS_OFFLINE ? 'http://localhost:8000' : undefined);
 
 if (DEBUG) {
   // Log minimal client configuration once
