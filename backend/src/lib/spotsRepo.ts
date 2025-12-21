@@ -30,6 +30,11 @@ let memory: Spot[] | null = null;
 const INMEMORY_FILE = process.env.INMEMORY_FILE || path.join(os.tmpdir(), 'pfm-inmemory-spots.json');
 
 function loadSeeds(): Spot[] {
+  // Never load default seeds when running on AWS (production)
+  if (IS_AWS) {
+    if (DEBUG) console.log('[repo] skip loadSeeds on AWS');
+    return [];
+  }
   const seedsPath = path.join(process.cwd(), 'seeds', 'spots.json');
   try {
     const raw = fs.readFileSync(seedsPath, 'utf-8');
@@ -77,6 +82,11 @@ function loadSeeds(): Spot[] {
 }
 
 function readStore(): Spot[] {
+  // Defensive: in AWS, never use in-memory store or write seeds
+  if (IS_AWS) {
+    if (DEBUG) console.log('[repo] skip readStore on AWS');
+    return [];
+  }
   try {
     if (fs.existsSync(INMEMORY_FILE)) {
       const raw = fs.readFileSync(INMEMORY_FILE, 'utf-8');
