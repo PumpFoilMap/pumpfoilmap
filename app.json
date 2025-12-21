@@ -11,7 +11,7 @@
     "splash": {
       "backgroundColor": "#0b3d91",
       "resizeMode": "contain",
-      "image": "./logos/logo_128.png"
+      "image": "./logos/logo_128_rgba.png"
     },
     "ios": { "supportsTablet": true },
     "android": {
@@ -19,7 +19,7 @@
       "splash": {
         "backgroundColor": "#0b3d91",
         "resizeMode": "contain",
-        "image": "./logos/logo_128.png"
+        "image": "./logos/logo_128_rgba.png"
       }
     },
     "web": { "bundler": "metro", "favicon": "./logos/favicon.png" }
