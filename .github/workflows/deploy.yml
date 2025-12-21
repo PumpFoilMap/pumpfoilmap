@@ -13,6 +13,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production  # Nom de l'environnement
     env:
       # Expo web export output directory (Expo 51 default is 'dist')
       WEB_BUILD_DIR: dist
