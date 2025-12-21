@@ -53,13 +53,20 @@ jobs:
           echo "Detected API base URL: $API_URL"
           echo "EXPO_PUBLIC_API_BASE_URL=$API_URL" >> "$GITHUB_ENV"
       - name: Inject MapTiler key
-        env:
-          MAPTILER_KEY: ${{ secrets.MAPTILER_PUBLIC_KEY }}
         run: |
-          if [ -z "${MAPTILER_KEY}" ]; then
-            echo "No MAPTILER_PUBLIC_KEY secret set; proceeding without a key (tiles may fail)" >&2
+          MAPTILER_KEY="${{ secrets.EXPO_PUBLIC_MAPTILER_KEY }}"
+          if [ -n "$MAPTILER_KEY" ]; then
+            echo "EXPO_PUBLIC_MAPTILER_KEY=$MAPTILER_KEY" >> "$GITHUB_ENV"
+            echo "MapTiler key: present (masked)"
           else
-            echo "EXPO_PUBLIC_MAPTILER_KEY=${MAPTILER_KEY}" >> "$GITHUB_ENV"
+            echo "MapTiler key not provided; tiles requiring a key may not load" >&2
+          fi
+      - name: Check MapTiler key presence
+        run: |
+          if [ -n "${EXPO_PUBLIC_MAPTILER_KEY:-}" ]; then
+            echo "EXPO_PUBLIC_MAPTILER_KEY is set"
+          else
+            echo "EXPO_PUBLIC_MAPTILER_KEY is NOT set" >&2
           fi
       - name: Build web front (Expo export)
         run: |
