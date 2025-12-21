@@ -4,7 +4,9 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 const IS_OFFLINE = process.env.IS_OFFLINE === 'true';
 const IS_AWS = !!process.env.AWS_EXECUTION_ENV;
 const REGION = process.env.AWS_REGION || 'eu-west-3';
-const DEBUG = process.env.PFM_DEBUG === '1' || IS_OFFLINE;
+
+//const DEBUG = process.env.PFM_DEBUG === '1' || IS_OFFLINE;
+const DEBUG= true;
 
 export const TABLE_SPOTS = process.env.TABLE_SPOTS as string;
 
