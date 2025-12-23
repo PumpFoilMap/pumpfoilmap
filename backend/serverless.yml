@@ -97,6 +97,13 @@ functions:
           path: /admin/spots
           method: get
 
+  adminCheckMd5:
+    handler: src/handlers/adminCheckMd5.handler
+    events:
+      - httpApi:
+          path: /admin/check-md5
+          method: post
+
 resources:
   Resources:
     SpotsTable:
