@@ -40,6 +40,11 @@ module.exports = [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
       ],
+      // Enforce using `import type` for type-only imports to improve tree-shaking and readability
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'separate-type-imports' }
+      ],
       '@typescript-eslint/no-require-imports': 'off',
   '@typescript-eslint/no-explicit-any': 'off',
   '@typescript-eslint/ban-ts-comment': 'off',

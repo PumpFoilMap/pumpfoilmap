@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import maplibregl, { Map as MapLibreMap, Popup } from 'maplibre-gl';
+import maplibregl, { Popup } from 'maplibre-gl';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { MapProps } from './types';
 // @ts-ignore - JSON style import
 import roadsCitiesStyle from '../../map-styles/roads-cities-style.json';

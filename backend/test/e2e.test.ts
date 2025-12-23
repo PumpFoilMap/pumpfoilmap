@@ -1,4 +1,5 @@
-import http, { IncomingMessage, ServerResponse } from 'node:http';
+import http from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import axios from 'axios';
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { handler as getSpots } from '../src/handlers/getSpots';

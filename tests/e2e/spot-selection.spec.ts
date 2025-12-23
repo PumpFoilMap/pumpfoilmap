@@ -1,4 +1,5 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 // Helper to execute code in browser context with small delay for map style readiness
 async function openSpot(page: Page, lon: number, lat: number) {
