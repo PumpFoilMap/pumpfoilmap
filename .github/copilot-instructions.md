@@ -4,7 +4,18 @@ Règle: tout code doit être accompagné d'un test unitaire et d'un test E2E.
 
 Règle: chaque changement doit passer le lint (npm run lint) sans avertissement ni erreur.
 
-Règle: chaque changement doit faire passer tous les tests (npm test et npm run test:e2e).
+Règle: chaque changement doit faire passer tous les tests (TU backend, TU root, Playwright E2E).
+
+Obligations de tests (à exécuter après chaque modification):
+- TU backend: `cd backend && npm test`
+- TU root (frontend/lib): `npm test`
+- E2E Playwright: `npm run test:e2e`
+
+Processus d'itération jusqu'au vert:
+- Après une modification, exécuter les 3 commandes ci-dessus.
+- Si un test échoue: corriger de manière ciblée et ré-exécuter immédiatement.
+- Itérer jusqu'à ce que tous les tests passent; ne pas conclure/valider tant que ce n'est pas vert.
+- En cas d'échecs persistants (≥3 tentatives), documenter la sortie exacte, la cause probable et proposer des options de fix ou de contournement.
 
 Règle: ignorer le fichier MYCOMMANDS.md, c'est un fichier qui ne doit pas être commité ni modifié
 
