@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Platform, ActivityIndicator, TextInput, Pressable, ScrollView, Image } from 'react-native';
 import Map from './components/Map';
 import sampleData from './data/sample-spots.json';
-import { fetchSpots, submitSpot, type SubmitSpotInput } from './services/api';
+import { fetchSpots, submitSpot, type SubmitSpotInput, checkAdminPassword } from './services/api';
 import type { HeatPoint } from './components/Map';
 
 export default function App() {
@@ -19,6 +19,10 @@ export default function App() {
     return localStorage.getItem('pfm-consent') !== 'ok';
   });
   const [admin, setAdmin] = useState<boolean>(false);
+  const [adminPrompt, setAdminPrompt] = useState<boolean>(false);
+  const [adminPass, setAdminPass] = useState<string>('');
+  const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
+  const [adminAuthLoading, setAdminAuthLoading] = useState<boolean>(false);
   const [form, setForm] = useState<any>({
     type: 'ponton',
     name: '',
@@ -145,11 +149,62 @@ export default function App() {
           <Pressable onPress={() => setAdmin(false)} style={{ marginRight: 12 }}>
             <Text style={{ color: !admin ? '#0b3d91' : '#333', fontWeight: !admin ? '700' as any : '400' }}>Carte</Text>
           </Pressable>
-          <Pressable onPress={() => setAdmin(true)}>
+          <Pressable onPress={() => {
+            if (!admin) {
+              setAdminPrompt(true);
+            } else {
+              setAdmin(true);
+            }
+          }}>
             <Text style={{ color: admin ? '#0b3d91' : '#333', fontWeight: admin ? '700' as any : '400' }}>Admin</Text>
           </Pressable>
         </View>
       </View>
+      {adminPrompt && !admin && (
+        <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: '#fff' }}>
+          <Text style={{ fontWeight: '600', marginBottom: 8 }}>Authentification administrateur</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TextInput
+              testID="admin-password-input"
+              value={adminPass}
+              onChangeText={(v) => { setAdminPass(v); setAdminAuthError(null); }}
+              placeholder="Mot de passe admin"
+              secureTextEntry
+              autoCapitalize="none"
+              style={{ flex: 1, borderWidth: 1, borderColor: adminAuthError ? 'tomato' : '#bbb', borderRadius: 4, padding: 8, marginRight: 8 }}
+            />
+            <Pressable
+              testID="admin-password-validate"
+              onPress={async () => {
+                setAdminAuthError(null);
+                setAdminAuthLoading(true);
+                try {
+                  const ok = await checkAdminPassword(adminPass);
+                  if (ok) {
+                    setAdmin(true);
+                    setAdminPrompt(false);
+                    setAdminPass('');
+                    try { localStorage.setItem('pfm-admin-auth', 'ok'); } catch {}
+                  } else {
+                    setAdminAuthError('Mot de passe invalide');
+                  }
+                } catch {
+                  setAdminAuthError('Erreur de connexion');
+                } finally {
+                  setAdminAuthLoading(false);
+                }
+              }}
+              disabled={adminAuthLoading}
+              style={{ backgroundColor: '#0b3d91', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 6, opacity: adminAuthLoading ? 0.6 : 1 }}
+            >
+              <Text style={{ color: 'white', fontWeight: '600' }}>{adminAuthLoading ? 'Vérification…' : 'Valider'}</Text>
+            </Pressable>
+          </View>
+          {!!adminAuthError && (
+            <Text testID="admin-auth-error" style={{ color: 'tomato', marginTop: 6 }}>{adminAuthError}</Text>
+          )}
+        </View>
+      )}
   {!admin && showForm ? (
         form.picking ? (
           <View style={{ flex: 1 }}>

@@ -1,4 +1,5 @@
 type FetchSpotsParams = { bbox?: string; limit?: number };
+import { md5 } from './md5';
 
 function getBaseUrl() {
   // Expo native/web: EXPO_PUBLIC_API_BASE_URL
@@ -59,4 +60,17 @@ export async function submitSpot(input: SubmitSpotInput) {
     throw new Error(`Submit failed (${res.status}): ${txt}`);
   }
   return (await res.json()) as { spotId: string; status: string; createdAt: string };
+}
+
+export async function checkAdminPassword(password: string): Promise<boolean> {
+  const base = getBaseUrl();
+  const hash = md5(password);
+  const res = await fetch(`${base}/admin/check-md5`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ md5: hash })
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return !!data.match;
 }

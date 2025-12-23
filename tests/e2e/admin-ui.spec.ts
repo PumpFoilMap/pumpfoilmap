@@ -2,6 +2,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Admin UI', () => {
   test('liste les soumissions et affiche les actions', async ({ page }) => {
+    // Mock admin password check
+    await page.route('**/admin/check-md5', async route => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ match: true }) });
+        return;
+      }
+      await route.fallback();
+    });
     // Mock GET list
     await page.route('**/admin/spots**', async route => {
       if (route.request().method() === 'GET') {
@@ -27,8 +35,10 @@ test.describe('Admin UI', () => {
     });
 
     await page.goto('/');
-  // Ouvrir l’onglet Admin
+    // Ouvrir l’onglet Admin et s’authentifier
     await page.getByText('Admin').click();
+    await page.getByPlaceholder('Mot de passe admin').fill('secret');
+    await page.getByTestId('admin-password-validate').click();
   // Attendre le tableau
   await expect(page.getByText('Administration — Spots')).toBeVisible();
   // Attendre que les données soient chargées et vérifier les champs saisis

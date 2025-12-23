@@ -5,6 +5,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Admin selection on map', () => {
   test('select on map, then edit and delete the spot', async ({ page }) => {
+    // Mock admin password check
+    await page.route('**/admin/check-md5', async route => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ match: true }) });
+        return;
+      }
+      await route.fallback();
+    });
     // Mock listing (single item for deterministic selection)
     await page.route('**/admin/spots**', async route => {
       if (route.request().method() === 'GET') {
@@ -34,8 +42,10 @@ test.describe('Admin selection on map', () => {
       await route.fallback();
     });
 
-    await page.goto('/');
-    await page.getByText('Admin').click();
+  await page.goto('/');
+  await page.getByText('Admin').click();
+  await page.getByPlaceholder('Mot de passe admin').fill('secret');
+  await page.getByTestId('admin-password-validate').click();
     await expect(page.getByText('Administration — Spots')).toBeVisible();
 
     // Enable selection on the map

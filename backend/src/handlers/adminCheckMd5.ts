@@ -24,6 +24,10 @@ export const handler = async (
       || (typeof qp.md5 === 'string' && qp.md5)
       || undefined;
 
+    console.info("Received md5:", inputMd5);
+    console.info("Password:", admin);
+    console.info("Password Hash:", adminHash);
+
     if (!inputMd5) {
       return { statusCode: 400, headers: cors, body: JSON.stringify({ message: 'Missing md5' }) };
     }
