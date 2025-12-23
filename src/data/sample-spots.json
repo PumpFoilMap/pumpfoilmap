@@ -42,7 +42,8 @@
       "description": "Association informelle de foilers.",
       "url": "https://marseille-foil.example.org",
       "submittedBy": "amine",
-      "createdAt": "2025-03-20T16:00:00.000Z"
+      "createdAt": "2025-03-20T16:00:00.000Z",
+      "imageUrl": "https://bidon.fr/IMG/webmaster/bidontheque-logo.png"
     },
     {
       "lon": 3.0586,

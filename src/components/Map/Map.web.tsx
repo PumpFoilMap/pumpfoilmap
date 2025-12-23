@@ -51,7 +51,7 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
         let popEl = root.querySelector('[data-testid="spot-popup"]');
         if (popEl) popEl.remove();
         popEl = document.createElement('div');
-        popEl.setAttribute('data-testid', 'spot-popup');
+  popEl.setAttribute('data-testid', 'spot-popup');
         const pop = popEl as HTMLElement;
         pop.style.position = 'absolute';
         pop.style.top = '16px';
@@ -60,10 +60,22 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
         pop.style.padding = '8px 10px';
         pop.style.borderRadius = '6px';
         pop.style.boxShadow = '0 2px 6px rgba(0,0,0,0.25)';
-        pop.innerHTML = `<div style="font-weight:600;margin-bottom:4px">${match.p.title || 'Spot'}</div>` +
+        // Optional image (associations only) in a square box
+        const assocImage = (match.p.type === 'association' && match.p.imageUrl)
+          ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px\"><img src=\"${match.p.imageUrl}\" alt=\"image association\" style=\"width:100%;height:100%;object-fit:cover;display:block\" /></div>`
+          : '';
+  const hasImg = Boolean(assocImage);
+  popEl.setAttribute('data-type', String(match.p.type ?? ''));
+  popEl.setAttribute('data-has-img', hasImg ? '1' : '0');
+        pop.innerHTML = `<div data-type=\"${match.p.type ?? ''}\" data-has-img=\"${hasImg ? '1' : '0'}\">` +
+          `<div style=\"font-weight:600;margin-bottom:4px\">${match.p.title || 'Spot'}</div>` +
           (match.p.description ? `<div style=\"color:#555\">${match.p.description}</div>` : '') +
+          (match.p.type === 'association' && match.p.imageUrl
+            ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px\"><img data-testid=\"spot-image\" src=\"${match.p.imageUrl}\" alt=\"image association\" style=\"width:100%;height:100%;object-fit:cover;display:block\" /></div>`
+            : '') +
           (match.p.type === 'association' && match.p.url ? `<div style=\"margin-top:6px\"><a style=\"color:#0a62c9;text-decoration:none;font-weight:500\" href=\"${match.p.url}\" target=\"_blank\" rel=\"noopener\">Visiter le site ↗</a></div>` : '') +
-          `<div style=\"margin-top:6px;color:#777;font-size:12px\">${match.p.lat.toFixed(4)}, ${match.p.lon.toFixed(4)}</div>`;
+          `<div style=\"margin-top:6px;color:#777;font-size:12px\">${match.p.lat.toFixed(4)}, ${match.p.lon.toFixed(4)}</div>` +
+          `</div>`;
         root.appendChild(pop);
       };
     }
@@ -83,6 +95,7 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
         description: p.description ?? '',
         type: p.type,
         url: p.url,
+        imageUrl: p.imageUrl,
         address: p.address,
         submittedBy: p.submittedBy,
         createdAt: p.createdAt
@@ -287,11 +300,26 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
           }
           const coordinates = (feature.geometry as any).coordinates.slice();
           const props: any = feature.properties || {};
-          const isAssoc = props.type === 'association';
+          // Derive nearest source point to enrich properties when style drops them
+          let nearest: { p: any; d: number } | null = null;
+          try {
+            const [lon, lat] = coordinates as [number, number];
+            nearest = points.reduce<{ p: any; d: number } | null>((acc, p) => {
+              const d = Math.hypot((p.lon ?? 0) - lon, (p.lat ?? 0) - lat);
+              if (!acc || d < acc.d) return { p, d };
+              return acc;
+            }, null);
+          } catch {}
+          const nearOk = Boolean(nearest && nearest.d < 0.0005);
+          const isAssoc = props.type === 'association' || (nearOk && nearest!.p.type === 'association');
+          // Derive imageUrl more robustly: fall back to original points lookup if missing
+          const derivedImageUrl: string | undefined = (props.imageUrl as any) ?? (nearOk ? nearest!.p.imageUrl : undefined);
           const urlHtml = isAssoc && props.url
             ? `<div style=\"margin-top:8px\"><a style=\"color:#0a62c9;text-decoration:none;font-weight:500\" href=\"${props.url}\" target=\"_blank\" rel=\"noopener noreferrer\">Visiter le site ↗</a></div>`
             : '';
-          const imageHtml = props.imageUrl ? `<div style=\"margin-top:8px\"><img src=\"${props.imageUrl}\" alt=\"image spot\" style=\"max-width:240px;width:100%;border-radius:4px;display:block;object-fit:cover\" /></div>` : '';
+          const imageHtml = (isAssoc && derivedImageUrl)
+            ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px\"><img data-testid=\"spot-image\" src=\"${derivedImageUrl}\" alt=\"image association\" style=\"width:100%;height:100%;object-fit:cover;display:block\" /></div>`
+            : '';
           const navUrl = props.type === 'ponton' ? `https://www.google.com/maps/dir/?api=1&destination=${coordinates[1]},${coordinates[0]}` : '';
           const navHtml = navUrl ? `<div style=\"margin-top:8px\"><a style=\"color:#0a62c9;text-decoration:none;font-weight:500\" href=\"${navUrl}\" target=\"_blank\" rel=\"noopener noreferrer\">Y aller ↗</a></div>` : '';
             const pontonFields = props.type === 'ponton'
@@ -301,7 +329,8 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
             const addressHtml = props.address ? `<div style=\"margin-top:6px;color:#444\">${props.address}</div>` : '';
           const metaHtml = `<div style=\"margin-top:6px;color:#777;font-size:12px\">${coordinates[1].toFixed(4)}, ${coordinates[0].toFixed(4)}</div>`;
           const submittedHtml = props.submittedBy ? `<div style=\"margin-top:4px;color:#777;font-size:12px\">par ${props.submittedBy}${props.createdAt ? ` — ${new Date(props.createdAt).toLocaleDateString()}` : ''}</div>` : '';
-            const html = `<div data-testid=\"spot-popup\" style=\"max-width:260px\">\n            <div style=\"font-weight:600;margin-bottom:4px\">${props.title || 'Spot'}</div>\n            ${props.description ? `<div style=\\\"color:#555\\\">${props.description}</div>` : ''}\n            ${pontonFields}\n            ${addressHtml}\n            ${imageHtml}\n            ${urlHtml}\n            ${navHtml}\n            ${metaHtml}\n            ${submittedHtml}\n          </div>`;
+            const hasImg = Boolean(imageHtml);
+            const html = `<div data-testid=\"spot-popup\" data-type=\"${isAssoc ? 'association' : (props.type ?? '')}\" data-has-img=\"${hasImg ? '1' : '0'}\" style=\"max-width:260px\">\n            <div style=\"font-weight:600;margin-bottom:4px\">${props.title || 'Spot'}</div>\n            ${props.description ? `<div style=\"color:#555\">${props.description}</div>` : ''}\n            ${pontonFields}\n            ${addressHtml}\n            ${imageHtml}\n            ${urlHtml}\n            ${navHtml}\n            ${metaHtml}\n            ${submittedHtml}\n          </div>`;
           new Popup({ closeButton: true })
             .setLngLat(coordinates as any)
             .setHTML(html)

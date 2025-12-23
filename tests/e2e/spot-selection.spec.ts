@@ -27,4 +27,19 @@ test.describe('Sélection de spots', () => {
   await expect(page.getByTestId('spot-popup').getByText('Foil Nantes Club', { exact: false })).toBeVisible();
   await expect(page.getByTestId('spot-popup').getByText('Visiter le site', { exact: false })).toBeVisible();
   });
+
+  test('3/ association avec image — l\'image est visible', async ({ page }) => {
+    await page.goto('/');
+    // Marseille association with imageUrl in sample data
+    await openSpot(page, 5.3698, 43.2965);
+    const popup = page.getByTestId('spot-popup');
+    await expect(popup).toBeVisible();
+    // Robust assertions: verify popup metadata indicates association with image
+    await expect(popup).toHaveAttribute('data-type', 'association');
+    await expect(popup).toHaveAttribute('data-has-img', '1');
+    // And an <img> element is present with a src
+    const img = popup.locator('img');
+    await expect(img).toHaveCount(1);
+    await expect(img).toHaveAttribute('src', /.+/);
+  });
 });

@@ -77,31 +77,36 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true;
-    fetchSpots({ limit: 500 })
-      .then((data) => {
-        if (!mounted) return;
-        const pts = data.items
-          .filter((s: any) => typeof s.lat === 'number' && typeof s.lng === 'number')
-          .map((s: any) => ({
-            lat: s.lat,
-            lon: s.lng,
-            weight: 1,
-            title: s.name ?? `Spot` ,
-            description: s.description ?? '',
-            type: s.type as 'ponton' | 'association' | undefined,
-            url: s.url || s.website,
-            address: s.address,
-            submittedBy: s.submittedBy,
-            createdAt: s.createdAt,
-            heightCm: s.heightCm,
-            lengthM: s.lengthM,
-            access: s.access,
-            imageUrl: s.imageUrl
-          }));
-        if (pts.length) setPoints(pts);
-      })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
+    const hasApi = Boolean(process.env.EXPO_PUBLIC_API_BASE_URL);
+    if (hasApi) {
+      fetchSpots({ limit: 500 })
+        .then((data) => {
+          if (!mounted) return;
+          const pts = data.items
+            .filter((s: any) => typeof s.lat === 'number' && typeof s.lng === 'number')
+            .map((s: any) => ({
+              lat: s.lat,
+              lon: s.lng,
+              weight: 1,
+              title: s.name ?? `Spot` ,
+              description: s.description ?? '',
+              type: s.type as 'ponton' | 'association' | undefined,
+              url: s.url || s.website,
+              address: s.address,
+              submittedBy: s.submittedBy,
+              createdAt: s.createdAt,
+              heightCm: s.heightCm,
+              lengthM: s.lengthM,
+              access: s.access,
+              imageUrl: s.imageUrl
+            }));
+          if (pts.length) setPoints(pts);
+        })
+        .catch((e) => setError(String(e)))
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
     return () => {
       mounted = false;
     };
