@@ -20,6 +20,7 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const loadedRef = useRef<boolean>(false);
   const pendingFCRef = useRef<any | null>(null);
+  const popupRef = useRef<Popup | null>(null);
   // Keep latest props in refs for stable event handlers
   const pickRef = useRef<boolean>(!!picking);
   const cbRef = useRef<typeof onPickLocation | undefined>(onPickLocation);
@@ -275,7 +276,7 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
           }, firstSymbolLayerId);
         }
 
-        // Click handler: clusters -> zoom in, points -> popup
+        // Click handler: clusters -> zoom in
         map.on('click', 'clusters', (e) => {
           const feature = e.features && e.features[0];
           if (!feature) return;
@@ -293,11 +294,6 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
         const onPointClick = (e: any) => {
           const feature = e.features && e.features[0];
           if (!feature) return;
-          if (pickRef.current && cbRef.current) {
-            const coords = (feature.geometry as any).coordinates.slice();
-            cbRef.current({ lon: coords[0], lat: coords[1] });
-            return;
-          }
           const coordinates = (feature.geometry as any).coordinates.slice();
           const props: any = feature.properties || {};
           // Derive nearest source point to enrich properties when style drops them
@@ -331,23 +327,31 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
           const submittedHtml = props.submittedBy ? `<div style=\"margin-top:4px;color:#777;font-size:12px\">par ${props.submittedBy}${props.createdAt ? ` — ${new Date(props.createdAt).toLocaleDateString()}` : ''}</div>` : '';
             const hasImg = Boolean(imageHtml);
             const html = `<div data-testid=\"spot-popup\" data-type=\"${isAssoc ? 'association' : (props.type ?? '')}\" data-has-img=\"${hasImg ? '1' : '0'}\" style=\"max-width:260px\">\n            <div style=\"font-weight:600;margin-bottom:4px\">${props.title || 'Spot'}</div>\n            ${props.description ? `<div style=\"color:#555\">${props.description}</div>` : ''}\n            ${pontonFields}\n            ${addressHtml}\n            ${imageHtml}\n            ${urlHtml}\n            ${navHtml}\n            ${metaHtml}\n            ${submittedHtml}\n          </div>`;
-          new Popup({ closeButton: true })
+          if (!popupRef.current) {
+            popupRef.current = new Popup({ closeButton: true });
+          }
+          popupRef.current
             .setLngLat(coordinates as any)
             .setHTML(html)
             .addTo(map);
         };
-        // Register clicks on all visual single-point layers (the original code only had a non-existent 'unclustered-point')
-        ['unclustered-core', 'unclustered-halo', 'unclustered-glow', 'unclustered-title'].forEach((layerId) => {
-          if (map.getLayer(layerId)) {
-            map.on('click', layerId, onPointClick);
+        // Single global click handler: handle picking or open popup for nearest point feature
+        map.on('click', (e) => {
+          // Picking mode: short-circuit to callback
+          if (pickRef.current && cbRef.current) {
+            cbRef.current({ lon: e.lngLat.lng, lat: e.lngLat.lat });
+            return;
           }
+          // Query visible point layers once
+          try {
+            const features = map.queryRenderedFeatures(e.point, { layers: ['unclustered-core', 'unclustered-halo', 'unclustered-glow', 'unclustered-title'] });
+            if (features && features.length) {
+              onPointClick({ features });
+            }
+          } catch {}
         });
         if (pickRef.current && cbRef.current) {
           map.getCanvas().style.cursor = 'crosshair';
-          map.on('click', (e) => {
-            if (!pickRef.current) return; // runtime check
-            cbRef.current?.({ lon: e.lngLat.lng, lat: e.lngLat.lat });
-          });
         }
         // Expose lightweight test utilities in non-production for Playwright (no side effects in prod bundle tree-shaken)
         if (process.env.NODE_ENV !== 'production') {
@@ -356,7 +360,7 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
             openSpot(lon: number, lat: number) {
               try {
                 const pt = map.project([lon, lat]);
-                const features = map.queryRenderedFeatures(pt, { layers: ['unclustered-core'] });
+                const features = map.queryRenderedFeatures(pt, { layers: ['unclustered-core', 'unclustered-halo', 'unclustered-glow', 'unclustered-title'] });
                 if (features.length) {
                   onPointClick({ features });
                 }
