@@ -20,7 +20,7 @@ jobs:
       # S3 bucket hosting the static site (set to your bucket name)
       S3_BUCKET: pumpfoilmap-prod-static
       # CloudFront distribution ID for cache invalidation
-      CLOUDFRONT_DISTRIBUTION_ID: E1W0RWEBKTTGFU
+      CLOUDFRONT_DISTRIBUTION_ID: E2O1IOH525GL5H
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
