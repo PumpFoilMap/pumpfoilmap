@@ -6,6 +6,9 @@ import { handler as submitHandler } from '../src/handlers/submitSpot';
 import { handler as adminUpdate } from '../src/handlers/adminUpdateSpot';
 import { handler as adminDelete } from '../src/handlers/adminDeleteSpot';
 import { handler as listSpots } from '../src/handlers/adminListSpots';
+import { createHash } from 'node:crypto';
+
+function md5(s: string) { return createHash('md5').update(s).digest('hex'); }
 
 describe('Admin update and delete', () => {
   it('updates fields and deletes a spot', async () => {
@@ -16,8 +19,8 @@ describe('Admin update and delete', () => {
 
     // Update name and description
     const upd = await adminUpdate({
-      headers: { Authorization: 'Bearer dev' } as any,
       pathParameters: { id: spotId },
+      headers: { authorization: `Bearer ${md5('dev')}` },
       body: JSON.stringify({ name: 'Updated', description: 'ok' })
     } as any);
     expect(upd.statusCode).toBe(200);
@@ -25,18 +28,18 @@ describe('Admin update and delete', () => {
     expect(upBody.name).toBe('Updated');
 
     // List all and ensure present
-    const lst = await listSpots({ headers: { Authorization: 'Bearer dev' } } as any);
+  const lst = await listSpots({ headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     expect(lst.statusCode).toBe(200);
     const listBody = JSON.parse(lst.body as string);
     const ids: string[] = listBody.items.map((s: any) => s.spotId);
     expect(ids).toContain(spotId);
 
     // Delete it
-    const del = await adminDelete({ headers: { Authorization: 'Bearer dev' } as any, pathParameters: { id: spotId } } as any);
+  const del = await adminDelete({ pathParameters: { id: spotId }, headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     expect([200,204]).toContain(del.statusCode);
 
     // List should no longer contain it
-    const lst2 = await listSpots({ headers: { Authorization: 'Bearer dev' } } as any);
+  const lst2 = await listSpots({ headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     const body2 = JSON.parse(lst2.body as string);
     const ids2: string[] = body2.items.map((s: any) => s.spotId);
     expect(ids2).not.toContain(spotId);

@@ -6,4 +6,6 @@ build
 web-build
 *.log
 dist-cjs
+/.esbuild
+**/.esbuild
 MYCOMMANDS.md

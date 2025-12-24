@@ -3,6 +3,7 @@ import { View, Text, Platform, ActivityIndicator, TextInput, Pressable, ScrollVi
 import Map from './components/Map';
 import sampleData from './data/sample-spots.json';
 import { fetchSpots, submitSpot, type SubmitSpotInput, checkAdminPassword } from './services/api';
+import { md5 as md5hash } from './services/md5';
 import type { HeatPoint } from './components/Map';
 
 export default function App() {
@@ -462,11 +463,14 @@ function AdminPanel() {
   const size = 20;
   const base = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
   const adminToken = process.env.EXPO_PUBLIC_ADMIN_TOKEN || 'dev';
+  const adminMd5 = md5hash(adminToken);
 
   async function fetchPending() {
     try {
       // Ne pas flash l'écran: on ne touche pas à "loading" si déjà chargé
-      const r = await fetch(`${base}/admin/spots?size=1000&status=${statusFilter}`, { headers: { Authorization: `Bearer ${adminToken}` } });
+  const r = await fetch(`${base}/admin/spots?size=1000&status=${statusFilter}` , {
+        headers: { authorization: `Bearer ${adminMd5}` }
+      });
       const d = await r.json();
       setItems(d.items || []);
       // Reset pagination si la liste change
@@ -479,7 +483,7 @@ function AdminPanel() {
 
   useEffect(() => {
     let mounted = true;
-    fetch(`${base}/admin/spots?size=1000&status=${statusFilter}` as string, { headers: { Authorization: `Bearer ${adminToken}` } })
+  fetch(`${base}/admin/spots?size=1000&status=${statusFilter}` as string, { headers: { authorization: `Bearer ${adminMd5}` } })
       .then((r) => r.json())
       .then((d) => {
         if (!mounted) return;
@@ -625,13 +629,14 @@ function AdminRow({ spot, onChanged, selected }: { spot: any; onChanged?: () => 
   const [deleting, setDeleting] = useState(false);
   const base = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
   const adminToken = process.env.EXPO_PUBLIC_ADMIN_TOKEN || 'dev';
+  const adminMd5 = md5hash(adminToken);
 
   async function save(status?: 'approved'|'rejected') {
     setSaving(true);
     try {
       const payload = { ...f };
       if (status) payload.status = status;
-  const res = await fetch(`${base}/admin/spots/${spot.spotId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` }, body: JSON.stringify(payload) });
+  const res = await fetch(`${base}/admin/spots/${spot.spotId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${adminMd5}` }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error(String(res.status));
       onChanged?.();
     } finally {
@@ -660,7 +665,7 @@ function AdminRow({ spot, onChanged, selected }: { spot: any; onChanged?: () => 
           if (!ok) return;
           setDeleting(true);
           try {
-            const res = await fetch(`${base}/admin/spots/${spot.spotId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${adminToken}` } });
+            const res = await fetch(`${base}/admin/spots/${spot.spotId}`, { method: 'DELETE', headers: { authorization: `Bearer ${adminMd5}` } });
             if (!res.ok && res.status !== 204) throw new Error(String(res.status));
             onChanged?.();
           } catch {

@@ -13,6 +13,9 @@ import { handler as submitHandler } from '../src/handlers/submitSpot';
 import { handler as approveHandler } from '../src/handlers/approveSpot';
 import { handler as rejectHandler } from '../src/handlers/rejectSpot';
 import { handler as adminListPending } from '../src/handlers/adminListPending';
+import { createHash } from 'node:crypto';
+
+function md5(s: string) { return createHash('md5').update(s).digest('hex'); }
 
 describe('Moderation flow', () => {
   it('submits then approves a spot', async () => {
@@ -28,13 +31,13 @@ describe('Moderation flow', () => {
     const submitBody = JSON.parse(submitRes.body as string);
 
     // Approve
-    const approveRes = await approveHandler({ pathParameters: { id: submitBody.spotId } } as any);
+  const approveRes = await approveHandler({ pathParameters: { id: submitBody.spotId }, headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     expect(approveRes.statusCode).toBe(200);
     const approveBody = JSON.parse(approveRes.body as string);
     expect(approveBody.status).toBe('approved');
 
     // Reject (should flip to rejected)
-    const rejectRes = await rejectHandler({ pathParameters: { id: submitBody.spotId } } as any);
+  const rejectRes = await rejectHandler({ pathParameters: { id: submitBody.spotId }, headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     expect(rejectRes.statusCode).toBe(200);
     const rejectBody = JSON.parse(rejectRes.body as string);
     expect(rejectBody.status).toBe('rejected');
@@ -48,18 +51,18 @@ describe('Moderation flow', () => {
     const { spotId } = JSON.parse(sub.body as string);
 
     // Pending should include it
-    const list = await adminListPending({ headers: { Authorization: 'Bearer dev' } } as any);
+  const list = await adminListPending({ headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     expect(list.statusCode).toBe(200);
     const data = JSON.parse(list.body as string);
     const ids = (data.items || []).map((x: any) => x.spotId);
     expect(ids).toContain(spotId);
 
     // Approve
-    const appr = await approveHandler({ pathParameters: { id: spotId } } as any);
+  const appr = await approveHandler({ pathParameters: { id: spotId }, headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     expect(appr.statusCode).toBe(200);
 
     // Now pending should not include it
-    const list2 = await adminListPending({ headers: { Authorization: 'Bearer dev' } } as any);
+  const list2 = await adminListPending({ headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     expect(list2.statusCode).toBe(200);
     const data2 = JSON.parse(list2.body as string);
     const ids2 = (data2.items || []).map((x: any) => x.spotId);

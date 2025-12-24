@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { updateSpotStatus } from '../lib/spotsRepo';
+import { authorizeAdmin } from '../lib/adminAuth';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,10 @@ export const handler = async (
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
+    const auth = authorizeAdmin(event);
+    if ('code' in auth) {
+      return { statusCode: auth.code, headers: cors, body: JSON.stringify({ message: auth.code === 400 ? 'Missing md5' : 'Unauthorized' }) };
+    }
     const spotId = event.pathParameters?.id;
     if (!spotId) {
       return { statusCode: 400, headers: cors, body: JSON.stringify({ message: 'Missing id' }) };
