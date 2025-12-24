@@ -149,23 +149,7 @@ export default function App() {
           </View>
         </View>
       )}
-      {/* Admin toggle minimal (à sécuriser en prod) */}
-      <View style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#f7f7f7', borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-        <View style={{ flexDirection: 'row' }}>
-          <Pressable onPress={() => setAdmin(false)} style={{ marginRight: 12 }}>
-            <Text style={{ color: !admin ? '#0b3d91' : '#333', fontWeight: !admin ? '700' as any : '400' }}>Carte</Text>
-          </Pressable>
-          <Pressable onPress={() => {
-            if (!admin) {
-              setAdminPrompt(true);
-            } else {
-              setAdmin(true);
-            }
-          }}>
-            <Text style={{ color: admin ? '#0b3d91' : '#333', fontWeight: admin ? '700' as any : '400' }}>Admin</Text>
-          </Pressable>
-        </View>
-      </View>
+      {/* Admin toggle removed; Admin link moved to top-right overlay */}
       {adminPrompt && !admin && (
         <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: '#fff' }}>
           <Text style={{ fontWeight: '600', marginBottom: 8 }}>Authentification administrateur</Text>
@@ -414,7 +398,7 @@ export default function App() {
           onPickLocation={(c: { lat: number; lon: number }) => setForm((f: any) => ({ ...f, lat: c.lat.toFixed(5), lng: c.lon.toFixed(5), picking: false }))}
         />
       ) : (
-        <AdminPanel />
+        <AdminPanel onExit={() => setAdmin(false)} />
       )}
       {(!admin && !showForm && !loading) && (
         <View style={{ position: 'absolute', top: 12, right: 12, flexDirection: 'row' }}>
@@ -438,6 +422,19 @@ export default function App() {
           >
             <Text style={{ color: 'white', fontWeight: '600' }}>Proposer une nouvelle association</Text>
           </Pressable>
+          <View style={{ width: 8 }} />
+          <Pressable
+            onPress={() => {
+              if (!admin) {
+                setAdminPrompt(true);
+              } else {
+                setAdmin(true);
+              }
+            }}
+            style={{ backgroundColor: '#ddd', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, marginLeft: 8 }}
+          >
+            <Text style={{ color: '#333', fontWeight: '600' }}>Admin</Text>
+          </Pressable>
         </View>
       )}
       {!!error && !showForm && (
@@ -449,7 +446,7 @@ export default function App() {
   );
 }
 
-function AdminPanel() {
+function AdminPanel({ onExit }: { onExit?: () => void }) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -618,6 +615,16 @@ function AdminPanel() {
         </Pressable>
         <Pressable disabled={endP>=pontons.length} onPress={() => setPagePonton((p) => p+1)} style={{ opacity: endP>=pontons.length?0.5:1, backgroundColor: '#ddd', padding: 8, borderRadius: 4 }}>
           <Text>Suivant</Text>
+        </Pressable>
+      </View>
+      {/* Bottom actions */}
+      <View style={{ marginTop: 16, alignItems: 'flex-end' }}>
+        <Pressable
+          testID="btn-admin-return"
+          onPress={() => onExit?.()}
+          style={{ backgroundColor: '#ddd', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 6 }}
+        >
+          <Text style={{ color: '#333', fontWeight: '600' }}>Retour à la carte</Text>
         </Pressable>
       </View>
     </ScrollView>
