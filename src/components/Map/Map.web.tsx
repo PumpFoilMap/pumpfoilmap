@@ -63,7 +63,7 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
         pop.style.boxShadow = '0 2px 6px rgba(0,0,0,0.25)';
         // Optional image (associations only) in a square box
         const assocImage = (match.p.type === 'association' && match.p.imageUrl)
-          ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px\"><img src=\"${match.p.imageUrl}\" alt=\"image association\" style=\"width:100%;height:100%;object-fit:cover;display:block\" /></div>`
+          ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px;display:flex;align-items:center;justify-content:center\"><img src=\"${match.p.imageUrl}\" alt=\"image association\" style=\"max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block\" /></div>`
           : '';
   const hasImg = Boolean(assocImage);
   popEl.setAttribute('data-type', String(match.p.type ?? ''));
@@ -72,7 +72,7 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
           `<div style=\"font-weight:600;margin-bottom:4px\">${match.p.title || 'Spot'}</div>` +
           (match.p.description ? `<div style=\"color:#555\">${match.p.description}</div>` : '') +
           (match.p.type === 'association' && match.p.imageUrl
-            ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px\"><img data-testid=\"spot-image\" src=\"${match.p.imageUrl}\" alt=\"image association\" style=\"width:100%;height:100%;object-fit:cover;display:block\" /></div>`
+            ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px;display:flex;align-items:center;justify-content:center\"><img data-testid=\"spot-image\" src=\"${match.p.imageUrl}\" alt=\"image association\" style=\"max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block\" /></div>`
             : '') +
           (match.p.type === 'association' && match.p.url ? `<div style=\"margin-top:6px\"><a style=\"color:#0a62c9;text-decoration:none;font-weight:500\" href=\"${match.p.url}\" target=\"_blank\" rel=\"noopener\">Visiter le site ↗</a></div>` : '') +
           `<div style=\"margin-top:6px;color:#777;font-size:12px\">${match.p.lat.toFixed(4)}, ${match.p.lon.toFixed(4)}</div>` +
@@ -314,7 +314,7 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
             ? `<div style=\"margin-top:8px\"><a style=\"color:#0a62c9;text-decoration:none;font-weight:500\" href=\"${props.url}\" target=\"_blank\" rel=\"noopener noreferrer\">Visiter le site ↗</a></div>`
             : '';
           const imageHtml = (isAssoc && derivedImageUrl)
-            ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px\"><img data-testid=\"spot-image\" src=\"${derivedImageUrl}\" alt=\"image association\" style=\"width:100%;height:100%;object-fit:cover;display:block\" /></div>`
+            ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px;display:flex;align-items:center;justify-content:center\"><img data-testid=\"spot-image\" src=\"${derivedImageUrl}\" alt=\"image association\" style=\"max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block\" /></div>`
             : '';
           const navUrl = props.type === 'ponton' ? `https://www.google.com/maps/dir/?api=1&destination=${coordinates[1]},${coordinates[0]}` : '';
           const navHtml = navUrl ? `<div style=\"margin-top:8px\"><a style=\"color:#0a62c9;text-decoration:none;font-weight:500\" href=\"${navUrl}\" target=\"_blank\" rel=\"noopener noreferrer\">Y aller ↗</a></div>` : '';
