@@ -1,10 +1,65 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Platform, ActivityIndicator, TextInput, Pressable, ScrollView, Image } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, ActivityIndicator, TextInput, Pressable, ScrollView, Image } from 'react-native';
 import Map from './components/Map';
 import sampleData from './data/sample-spots.json';
 import { fetchSpots, submitSpot, type SubmitSpotInput, checkAdminPassword } from './services/api';
 import { md5 as md5hash } from './services/md5';
 import type { HeatPoint } from './components/Map';
+
+type ActionBarProps = {
+  isCompact: boolean;
+  onAddPonton: () => void;
+  onAddAssociation: () => void;
+  onAdmin: () => void;
+};
+
+function ActionBar({ isCompact, onAddPonton, onAddAssociation, onAdmin }: ActionBarProps) {
+  const containerStyle: any = {
+    flexDirection: 'row',
+    // Keep actions in a horizontal row that can wrap, but don't force full width so it can sit on the same line as the title when space allows
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center'
+  };
+  const primaryBtn = {
+    backgroundColor: '#0b3d91',
+    paddingVertical: 8,
+    paddingHorizontal: isCompact ? 10 : 14,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    marginRight: isCompact ? 6 : 8,
+    marginBottom: 8,
+    flexShrink: 1 as const
+  };
+  const adminBtn = {
+    backgroundColor: '#ddd',
+    paddingVertical: 8,
+    paddingHorizontal: isCompact ? 10 : 14,
+    borderRadius: 20,
+    marginLeft: isCompact ? 6 : 8,
+    marginBottom: 8,
+    flexShrink: 1 as const
+  };
+  return (
+    <View style={containerStyle}>
+      <Pressable testID="btn-add-ponton" onPress={onAddPonton} style={primaryBtn as any}>
+        <Text style={{ color: 'white', fontWeight: '600' }}>
+          {isCompact ? 'Proposer ponton' : 'Proposer un nouveau ponton'}
+        </Text>
+      </Pressable>
+      <Pressable testID="btn-add-association" onPress={onAddAssociation} style={primaryBtn as any}>
+        <Text style={{ color: 'white', fontWeight: '600' }}>
+          {isCompact ? 'Proposer association' : 'Proposer une nouvelle association'}
+        </Text>
+      </Pressable>
+      <Pressable onPress={onAdmin} style={adminBtn as any}>
+        <Text style={{ color: '#333', fontWeight: '600' }}>Admin</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export default function App() {
   const showLogos = (process.env.EXPO_PUBLIC_DISABLE_LOGOS ?? '0') !== '1';
@@ -117,20 +172,50 @@ export default function App() {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ padding: 12, backgroundColor: '#0b3d91' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {showLogos ? (
-            <Image
-              source={require('../logos/logo_128.png')}
-              style={{ width: 40, height: 40, marginRight: 12, borderRadius: 8 }}
-              accessibilityLabel="PumpfoilMap logo"
+        <View
+          style={{
+            // Title and actions on the same line when space allows; wrap to two lines on narrow screens
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
+            {showLogos ? (
+              <Image
+                source={require('../logos/logo_128.png')}
+                style={{ width: 40, height: 40, marginRight: 12, borderRadius: 8 }}
+                accessibilityLabel="PumpfoilMap logo"
+              />
+            ) : null}
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>
+              PumpfoilMap — Spots
+            </Text>
+          </View>
+          {(!admin && !showForm && !loading) && (
+            <ActionBar
+              isCompact={typeof window !== 'undefined' && window.innerWidth < 600}
+              onAddPonton={() => {
+                setForm((f: any) => ({ ...f, type: 'ponton' }));
+                setShowForm(true);
+              }}
+              onAddAssociation={() => {
+                setForm((f: any) => ({ ...f, type: 'association' }));
+                setShowForm(true);
+              }}
+              onAdmin={() => {
+                if (!admin) {
+                  setAdminPrompt(true);
+                } else {
+                  setAdmin(true);
+                }
+              }}
             />
-          ) : null}
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>
-            PumpfoilMap — Spots ({Platform.OS})
-          </Text>
+          )}
         </View>
-        <View style={{ height: 8 }} />
       </View>
+      {/* Action buttons moved below the header title for better mobile layout */}
       {showGdpr && (
         <View style={{ backgroundColor: '#fffbdd', padding: 10, borderBottomWidth: 1, borderBottomColor: '#e2d69e' }}>
           <Text style={{ color: '#5d5400' }}>
@@ -149,7 +234,6 @@ export default function App() {
           </View>
         </View>
       )}
-      {/* Admin toggle removed; Admin link moved to top-right overlay */}
       {adminPrompt && !admin && (
         <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: '#fff' }}>
           <Text style={{ fontWeight: '600', marginBottom: 8 }}>Authentification administrateur</Text>
@@ -195,32 +279,7 @@ export default function App() {
           )}
         </View>
       )}
-  {!admin && showForm ? (
-        form.picking ? (
-          <View style={{ flex: 1 }}>
-            <Map
-              points={points}
-              picking={true}
-              onPickLocation={(c: { lat: number; lon: number }) => setForm((f: any) => ({ ...f, lat: c.lat.toFixed(5), lng: c.lon.toFixed(5), picking: false }))}
-            />
-            <View style={{ position: 'absolute', top: 12, left: 12, right: 12 }}>
-              <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 8 }}>
-                <Text style={{ color: 'white', fontWeight: '600', marginBottom: 4 }}>Sélection des coordonnées</Text>
-                <Text style={{ color: 'white', fontSize: 12, marginBottom: 8 }}>Cliquez / tapez sur la carte pour définir la position du spot.</Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Pressable onPress={() => setForm((f: any) => ({ ...f, picking: false }))} style={{ backgroundColor: '#d9534f', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 4 }}>
-                    <Text style={{ color: 'white', fontWeight: '600' }}>Annuler</Text>
-                  </Pressable>
-                  <View>
-                    <Text style={{ color: 'white', fontSize: 12 }}>
-                      {form.lat && form.lng ? `Lat: ${form.lat}  Lon: ${form.lng}` : 'Aucune coordonnée choisie'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
-        ) : (
+      {!admin && showForm ? (
         <ScrollView style={{ flex: 1, padding: 12 }} contentContainerStyle={{ paddingBottom: 60 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 12 }}>Soumettre un spot</Text>
           {/* Framed container for all form fields */}
@@ -385,8 +444,7 @@ export default function App() {
           )}
           {/* Bouton de retour déplacé à côté de "Soumettre" */}
         </ScrollView>
-        )
-  ) : !admin && loading ? (
+      ) : !admin && loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator />
           <Text style={{ marginTop: 8, color: '#666' }}>Chargement des spots…</Text>
@@ -400,43 +458,7 @@ export default function App() {
       ) : (
         <AdminPanel onExit={() => setAdmin(false)} />
       )}
-      {(!admin && !showForm && !loading) && (
-        <View style={{ position: 'absolute', top: 12, right: 12, flexDirection: 'row' }}>
-          <Pressable
-            testID="btn-add-ponton"
-            onPress={() => {
-              setForm((f: any) => ({ ...f, type: 'ponton' }));
-              setShowForm(true);
-            }}
-            style={{ backgroundColor: '#0b3d91', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, marginRight: 8 }}
-          >
-            <Text style={{ color: 'white', fontWeight: '600' }}>Proposer un nouveau ponton</Text>
-          </Pressable>
-          <Pressable
-            testID="btn-add-association"
-            onPress={() => {
-              setForm((f: any) => ({ ...f, type: 'association' }));
-              setShowForm(true);
-            }}
-            style={{ backgroundColor: '#0b3d91', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4 }}
-          >
-            <Text style={{ color: 'white', fontWeight: '600' }}>Proposer une nouvelle association</Text>
-          </Pressable>
-          <View style={{ width: 8 }} />
-          <Pressable
-            onPress={() => {
-              if (!admin) {
-                setAdminPrompt(true);
-              } else {
-                setAdmin(true);
-              }
-            }}
-            style={{ backgroundColor: '#ddd', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, marginLeft: 8 }}
-          >
-            <Text style={{ color: '#333', fontWeight: '600' }}>Admin</Text>
-          </Pressable>
-        </View>
-      )}
+      
       {!!error && !showForm && (
         <View style={{ position: 'absolute', bottom: 8, left: 8, right: 8 }}>
           <Text style={{ color: 'tomato' }}>{error}</Text>

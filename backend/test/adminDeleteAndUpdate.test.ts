@@ -3,9 +3,7 @@ process.env.USE_INMEMORY = 'true';
 process.env.ADMIN_TOKEN = 'dev';
 // Isolate the in-memory file to avoid cross-test interference when Jest runs files in parallel
 // Use a per-suite temp file so create/update/list operate on the same isolated store
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const os = require('node:os');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const path = require('node:path');
 process.env.INMEMORY_FILE = path.join(os.tmpdir(), `pfm-inmemory-admin-delete-update-${process.pid}.json`);
 

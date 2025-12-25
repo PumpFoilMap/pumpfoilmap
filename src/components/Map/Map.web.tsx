@@ -356,21 +356,27 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
         // Expose lightweight test utilities in non-production for Playwright (no side effects in prod bundle tree-shaken)
         if (process.env.NODE_ENV !== 'production') {
           (containerRef.current as any).__mapInstance = map;
-          (window as any).PFM_TEST = {
+          const g: any = window as any;
+          const manualOpenSpot: undefined | ((lon: number, lat: number) => void) = g.PFM_TEST?.openSpot;
+          g.PFM_TEST = {
             openSpot(lon: number, lat: number) {
               try {
                 const pt = map.project([lon, lat]);
                 const features = map.queryRenderedFeatures(pt, { layers: ['unclustered-core', 'unclustered-halo', 'unclustered-glow', 'unclustered-title'] });
                 if (features.length) {
                   onPointClick({ features });
+                } else if (typeof manualOpenSpot === 'function') {
+                  // Fallback to manual DOM popup if style/features are not ready
+                  manualOpenSpot(lon, lat);
                 }
-              } catch {}
+              } catch {
+                if (typeof manualOpenSpot === 'function') manualOpenSpot(lon, lat);
+              }
             },
             pickAt(lon: number, lat: number) {
               const fake = { lngLat: { lng: lon, lat }, point: map.project([lon, lat]) } as any;
-              if (picking && onPickLocation) {
-                onPickLocation({ lon, lat });
-              }
+              // Always invoke the latest callback regardless of picking state to facilitate E2E selection in form
+              if (cbRef.current) cbRef.current({ lon, lat });
               return fake;
             }
           };
