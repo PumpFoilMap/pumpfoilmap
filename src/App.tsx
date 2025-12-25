@@ -359,7 +359,11 @@ export default function App() {
               </Text>
               <View style={{ flexDirection: 'row', marginTop: 8 }}>
                 <Pressable testID="btn-choose-on-map"
-                  onPress={() => setForm((f: any) => ({ ...f, picking: true }))}
+                  onPress={() => {
+                    // Enable picking and show the map view
+                    setForm((f: any) => ({ ...f, picking: true }));
+                    setShowForm(false);
+                  }}
                   style={{ backgroundColor: '#0b3d91', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 6, marginRight: 12 }}
                 >
                   <Text style={{ color: 'white', fontWeight: '600' }}>Choisir sur la carte</Text>
@@ -452,8 +456,12 @@ export default function App() {
       ) : !admin ? (
         <Map
           points={points}
-          picking={!!form.picking && showForm}
-          onPickLocation={(c: { lat: number; lon: number }) => setForm((f: any) => ({ ...f, lat: c.lat.toFixed(5), lng: c.lon.toFixed(5), picking: false }))}
+          picking={!!form.picking}
+          onPickLocation={(c: { lat: number; lon: number }) => {
+            setForm((f: any) => ({ ...f, lat: c.lat.toFixed(5), lng: c.lon.toFixed(5), picking: false }));
+            // Automatically return to the form after a successful pick
+            setShowForm(true);
+          }}
         />
       ) : (
         <AdminPanel onExit={() => setAdmin(false)} />
