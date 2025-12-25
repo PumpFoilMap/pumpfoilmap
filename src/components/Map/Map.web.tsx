@@ -68,15 +68,14 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
   const hasImg = Boolean(assocImage);
   popEl.setAttribute('data-type', String(match.p.type ?? ''));
   popEl.setAttribute('data-has-img', hasImg ? '1' : '0');
-        pop.innerHTML = `<div data-type=\"${match.p.type ?? ''}\" data-has-img=\"${hasImg ? '1' : '0'}\">` +
-          `<div style=\"font-weight:600;margin-bottom:4px\">${match.p.title || 'Spot'}</div>` +
-          (match.p.description ? `<div style=\"color:#555\">${match.p.description}</div>` : '') +
-          (match.p.type === 'association' && match.p.imageUrl
-            ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px;display:flex;align-items:center;justify-content:center\"><img data-testid=\"spot-image\" src=\"${match.p.imageUrl}\" alt=\"image association\" style=\"max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block\" /></div>`
-            : '') +
-          (match.p.type === 'association' && match.p.url ? `<div style=\"margin-top:6px\"><a style=\"color:#0a62c9;text-decoration:none;font-weight:500\" href=\"${match.p.url}\" target=\"_blank\" rel=\"noopener\">Visiter le site ↗</a></div>` : '') +
-          `<div style=\"margin-top:6px;color:#777;font-size:12px\">${match.p.lat.toFixed(4)}, ${match.p.lon.toFixed(4)}</div>` +
-          `</div>`;
+          pop.innerHTML = `<div data-type=\"${match.p.type ?? ''}\" data-has-img=\"${hasImg ? '1' : '0'}\">` +
+            `<div style=\"font-weight:600;margin-bottom:4px\">${match.p.title || 'Spot'}</div>` +
+            (match.p.description ? `<div style=\"color:#555\">${match.p.description}</div>` : '') +
+            (match.p.type === 'association' && match.p.imageUrl
+              ? `<div style=\"margin-top:8px;width:240px;height:240px;max-width:240px;max-height:240px;overflow:hidden;border-radius:6px;display:flex;align-items:center;justify-content:center\"><img data-testid=\"spot-image\" src=\"${match.p.imageUrl}\" alt=\"image association\" style=\"max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block\" /></div>`
+              : '') +
+            (match.p.type === 'association' && match.p.url ? `<div style=\"margin-top:6px\"><a style=\"color:#0a62c9;text-decoration:none;font-weight:500\" href=\"${match.p.url}\" target=\"_blank\" rel=\"noopener\">Visiter le site ↗</a></div>` : '') +
+            `</div>`;
         root.appendChild(pop);
       };
     }
@@ -323,10 +322,10 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
                  <div style=\"margin-top:2px;color:#444\">Accès: ${props.access ?? '-'}</div>`
               : '';
             const addressHtml = props.address ? `<div style=\"margin-top:6px;color:#444\">${props.address}</div>` : '';
-          const metaHtml = `<div style=\"margin-top:6px;color:#777;font-size:12px\">${coordinates[1].toFixed(4)}, ${coordinates[0].toFixed(4)}</div>`;
           const submittedHtml = props.submittedBy ? `<div style=\"margin-top:4px;color:#777;font-size:12px\">par ${props.submittedBy}${props.createdAt ? ` — ${new Date(props.createdAt).toLocaleDateString()}` : ''}</div>` : '';
             const hasImg = Boolean(imageHtml);
-            const html = `<div data-testid=\"spot-popup\" data-type=\"${isAssoc ? 'association' : (props.type ?? '')}\" data-has-img=\"${hasImg ? '1' : '0'}\" style=\"max-width:260px\">\n            <div style=\"font-weight:600;margin-bottom:4px\">${props.title || 'Spot'}</div>\n            ${props.description ? `<div style=\"color:#555\">${props.description}</div>` : ''}\n            ${pontonFields}\n            ${addressHtml}\n            ${imageHtml}\n            ${urlHtml}\n            ${navHtml}\n            ${metaHtml}\n            ${submittedHtml}\n          </div>`;
+            
+            const html = `<div data-testid=\"spot-popup\" data-type=\"${isAssoc ? 'association' : (props.type ?? '')}\" data-has-img=\"${hasImg ? '1' : '0'}\" style=\"max-width:260px\">\n            <div style=\"font-weight:600;margin-bottom:4px\">${props.title || 'Spot'}<\/div>\n            ${props.description ? `<div style=\"color:#555\">${props.description}<\/div>` : ''}\n            ${pontonFields}\n            ${addressHtml}\n            ${imageHtml}\n            ${urlHtml}\n            ${navHtml}\n            ${submittedHtml}\n          <\/div>`;
           if (!popupRef.current) {
             popupRef.current = new Popup({ closeButton: true });
           }
@@ -413,5 +412,17 @@ export default function MapWeb({ points, onPickLocation, picking }: MapProps) {
 
   // world cities overlay removed
 
-  return <div ref={containerRef} data-testid="map-container" style={{ flex: 1, minHeight: 400 }} />;
+  // Render a wrapper so we can display an instruction banner while picking
+  return (
+    <div data-testid="map-container" style={{ position: 'relative', flex: 1, minHeight: 400 }}>
+      <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      {picking ? (
+        <div data-testid="picking-banner" style={{ position: 'absolute', top: 8, left: 8, right: 8 }}>
+          <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', padding: 8, borderRadius: 6 }}>
+            <span style={{ color: 'white', fontWeight: 600 }}>Cliquez sur la carte pour choisir les coordonnées</span>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
