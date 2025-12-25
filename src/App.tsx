@@ -100,6 +100,30 @@ export default function App() {
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [captchaLoading, setCaptchaLoading] = useState<boolean>(false);
 
+  // Build a safe data URL for an inline SVG. Prefer base64 for cross-browser reliability.
+  function buildSvgDataUrl(svg: string): string {
+    try {
+      return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    } catch {
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+  }
+
+  // Minimal fallback SVG shown when backend captcha cannot be fetched (CI/offline).
+  function fallbackCaptchaSvg(): string {
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="60">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eee"/><stop offset="1" stop-color="#ddd"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="160" height="60" fill="url(#g)" stroke="#ccc"/>
+  <text x="80" y="32" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#333">captcha</text>
+</svg>`;
+    return buildSvgDataUrl(svg);
+  }
+
   function isValidUrl(u?: string) {
     if (!u) return true;
     try {
@@ -183,15 +207,12 @@ export default function App() {
       setCaptchaVerified(false);
       setCaptchaError(null);
       setCaptchaAnswer('');
+      // Ensure image renders immediately in CI/offline by setting a placeholder
+      setCaptchaSvgUrl(fallbackCaptchaSvg());
+      setCaptchaSecret('DEV_FAKE');
       try {
         const { data, secret } = await getCaptcha();
-        const url = (() => {
-          try {
-            return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
-          } catch {
-            return 'data:image/svg+xml;utf8,' + encodeURIComponent(data);
-          }
-        })();
+        const url = buildSvgDataUrl(data);
         if (!mounted) return;
         setCaptchaSecret(secret);
         setCaptchaSvgUrl(url);
@@ -201,6 +222,7 @@ export default function App() {
       } catch {
         if (!mounted) return;
         setCaptchaError('Erreur de chargement du captcha');
+        // keep fallback image/secret already set
       } finally {
         if (mounted) {
           setCaptchaLoading(false);
@@ -451,14 +473,7 @@ export default function App() {
                     setCaptchaAnswer('');
                     try {
                       const { data, secret } = await getCaptcha();
-                      const url = (() => {
-                        try {
-                          // Base64 is more reliable across browsers for inline SVG
-                          return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
-                        } catch {
-                          return 'data:image/svg+xml;utf8,' + encodeURIComponent(data);
-                        }
-                      })();
+                      const url = buildSvgDataUrl(data);
                       setCaptchaSecret(secret);
                       setCaptchaSvgUrl(url);
                       if (process.env.NODE_ENV !== 'production') {
@@ -491,10 +506,7 @@ export default function App() {
                         // Auto-refresh for next attempt
                         try {
                           const { data, secret } = await getCaptcha();
-                          const url = (() => {
-                            try { return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data))); }
-                            catch { return 'data:image/svg+xml;utf8,' + encodeURIComponent(data); }
-                          })();
+                          const url = buildSvgDataUrl(data);
                           setCaptchaSecret(secret);
                           setCaptchaSvgUrl(url);
                           setCaptchaAnswer('');
