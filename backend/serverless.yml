@@ -20,6 +20,7 @@ provider:
     USE_INMEMORY: ${env:USE_INMEMORY, ''}
     DYNAMODB_ENDPOINT: ${env:DYNAMODB_ENDPOINT, ''}
     PFM_DEBUG: ${env:PFM_DEBUG, ''}
+    CAPTCHA_PRIVATE_KEY: ${env:CAPTCHA_PRIVATE_KEY, ''}
 
   iam:
     role:
@@ -104,6 +105,20 @@ functions:
           path: /admin/check-md5
           method: post
 
+  captchaGenerate:
+    handler: src/handlers/captchaGenerate.handler
+    events:
+      - httpApi:
+          path: /captcha
+          method: get
+
+  captchaVerify:
+    handler: src/handlers/captchaVerify.handler
+    events:
+      - httpApi:
+          path: /captcha/verify
+          method: post
+
 resources:
   Resources:
     SpotsTable:
@@ -127,6 +142,7 @@ custom:
     platform: node
     external:
       - aws-sdk
+      - svg-captcha
   dynamodb:
     stages:
       - dev

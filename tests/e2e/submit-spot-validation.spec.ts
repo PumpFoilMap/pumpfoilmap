@@ -5,9 +5,32 @@ test.describe('Validation formulaire soumission', () => {
   await page.goto('/');
   // Ouvrir formulaire (nouveau bouton)
   await page.getByTestId('btn-add-ponton').click();
+    // Valider le captcha pour activer la soumission
+    await expect(page.getByTestId('captcha-section')).toBeVisible();
+    await expect(page.getByTestId('captcha-image')).toBeVisible();
+    // Visually disabled submit button before captcha validation
+    const submitBtn = page.getByTestId('btn-submit-spot');
+    await expect(submitBtn).toHaveAttribute('aria-disabled', 'true');
+    const cssBefore = await submitBtn.evaluate((el) => {
+      const s = window.getComputedStyle(el as HTMLElement);
+      return { opacity: s.opacity, cursor: s.cursor };
+    });
+    expect(Number(cssBefore.opacity)).toBeLessThan(1);
+    expect(cssBefore.cursor).toBe('not-allowed');
+    await page.evaluate(() => { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, forceCaptchaAnswer: 'ok123' }; });
+    await page.getByTestId('captcha-input').fill('ok123');
+    await page.getByTestId('btn-validate-captcha').click();
+    // Enabled appearance after validation
+    await expect(submitBtn).not.toHaveAttribute('aria-disabled', 'true');
+    const cssAfter = await submitBtn.evaluate((el) => {
+      const s = window.getComputedStyle(el as HTMLElement);
+      return { opacity: s.opacity, cursor: s.cursor };
+    });
+    expect(Number(cssAfter.opacity)).toBe(1);
+    expect(cssAfter.cursor).toBe('pointer');
     // Type par défaut: ponton
 
-    // 1) Tentative de soumission vide -> erreurs
+  // 1) Tentative de soumission vide -> erreurs
     await page.locator('[data-testid="btn-submit-spot"]').click();
     await expect(page.getByTestId('error-name')).toBeVisible();
     await expect(page.getByTestId('error-submittedBy')).toBeVisible();
@@ -40,6 +63,22 @@ test.describe('Validation formulaire soumission', () => {
       window.PFM_TEST.pickAt(2.35, 48.85);
     });
 
+    // Valider de nouveau le captcha (la sélection sur carte ré-affiche le formulaire et recharge le captcha)
+    await expect(page.getByTestId('captcha-section')).toBeVisible();
+    await expect(page.getByTestId('captcha-image')).toBeVisible();
+    await page.evaluate(() => { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, forceCaptchaAnswer: 'ok123' }; });
+    await page.getByTestId('captcha-input').fill('ok123');
+    await page.getByTestId('btn-validate-captcha').click();
+    await expect(page.getByTestId('btn-submit-spot')).not.toHaveAttribute('aria-disabled', 'true');
+  // Captcha UI hidden after validation
+  await expect(page.getByTestId('captcha-image')).toHaveCount(0);
+  await expect(page.getByTestId('btn-validate-captcha')).toHaveCount(0);
+  await expect(page.getByTestId('btn-refresh-captcha')).toHaveCount(0);
+  // Captcha UI hidden after re-validation
+  await expect(page.getByTestId('captcha-image')).toHaveCount(0);
+  await expect(page.getByTestId('btn-validate-captcha')).toHaveCount(0);
+  await expect(page.getByTestId('btn-refresh-captcha')).toHaveCount(0);
+
     // Erreurs doivent disparaître après nouvelle tentative
     await page.locator('[data-testid="btn-submit-spot"]').click();
     await expect(page.getByTestId('error-name')).toHaveCount(0);
@@ -51,11 +90,9 @@ test.describe('Validation formulaire soumission', () => {
     await expect(page.getByTestId('error-imageUrl')).toHaveCount(0);
     await expect(page.getByTestId('error-contactEmail')).toHaveCount(0);
 
-    // On ne force pas un succès réseau ici; on attend un message de résultat (succès ou erreur)
-    try { await expect(page.getByText('Envoi…')).toBeVisible({ timeout: 2000 }); } catch {}
-    await Promise.race([
-      page.waitForSelector('text=Erreur:', { timeout: 15000 }),
-      page.waitForSelector('text=✅ Spot soumis', { timeout: 15000 })
-    ]);
+  // Soumettre (court-circuit succès pour le test)
+  await page.evaluate(() => { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, forceSubmitOk: true }; });
+  await page.locator('[data-testid="btn-submit-spot"]').click();
+  await expect(page.getByText('✅ Spot soumis', { exact: false })).toBeVisible();
   });
 });

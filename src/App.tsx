@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, TextInput, Pressable, ScrollView, Image } from 'react-native';
 import Map from './components/Map';
 import sampleData from './data/sample-spots.json';
-import { fetchSpots, submitSpot, type SubmitSpotInput, checkAdminPassword } from './services/api';
+import { fetchSpots, submitSpot, type SubmitSpotInput, checkAdminPassword, getCaptcha, verifyCaptcha } from './services/api';
 import { md5 as md5hash } from './services/md5';
 import type { HeatPoint } from './components/Map';
 
@@ -93,6 +93,12 @@ export default function App() {
     imageUrl: '',
     contactEmail: ''
   });
+  const [captchaSecret, setCaptchaSecret] = useState<string | null>(null);
+  const [captchaSvgUrl, setCaptchaSvgUrl] = useState<string | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState<string>('');
+  const [captchaVerified, setCaptchaVerified] = useState<boolean>(false);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const [captchaLoading, setCaptchaLoading] = useState<boolean>(false);
 
   function isValidUrl(u?: string) {
     if (!u) return true;
@@ -168,6 +174,42 @@ export default function App() {
     };
   }, []);
 
+  // Fetch captcha immediately when the submission form is shown
+  useEffect(() => {
+    let mounted = true;
+    async function loadCaptchaOnFormOpen() {
+      if (!showForm) return;
+      // reset state and fetch a fresh captcha
+      setCaptchaVerified(false);
+      setCaptchaError(null);
+      setCaptchaAnswer('');
+      try {
+        const { data, secret } = await getCaptcha();
+        const url = (() => {
+          try {
+            return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+          } catch {
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(data);
+          }
+        })();
+        if (!mounted) return;
+        setCaptchaSecret(secret);
+        setCaptchaSvgUrl(url);
+        if (process.env.NODE_ENV !== 'production') {
+          try { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, captchaSecret: secret }; } catch {}
+        }
+      } catch {
+        if (!mounted) return;
+        setCaptchaError('Erreur de chargement du captcha');
+      } finally {
+        if (mounted) {
+          setCaptchaLoading(false);
+        }
+      }
+    }
+    loadCaptchaOnFormOpen();
+    return () => { mounted = false; };
+  }, [showForm]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -376,10 +418,110 @@ export default function App() {
                 <Text testID="error-latlng" style={{ color: 'tomato', marginTop: 6, fontSize: 12 }}>{errors.latlng}</Text>
               )}
             </View>
+            {/* Captcha section */}
+            <View testID="captcha-section" style={{ marginTop: 16, padding: 8, backgroundColor: '#f7f7f7', borderRadius: 4 }}>
+              <Text style={{ fontSize: 12, color: '#333', marginBottom: 8 }}>Vérification captcha</Text>
+              {!captchaVerified && captchaSvgUrl ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {/* Render SVG via data URL */}
+                  <Image testID="captcha-image" source={{ uri: captchaSvgUrl }} style={{ width: 160, height: 60, marginRight: 8, borderWidth: 1, borderColor: '#ccc', borderRadius: 4 }} />
+                  <TextInput
+                    testID="captcha-input"
+                    value={captchaAnswer}
+                    onChangeText={(v) => { setCaptchaAnswer(v); setCaptchaError(null); }}
+                    placeholder="Réponse"
+                    autoCapitalize="none"
+                    style={{ flex: 1, borderWidth: 1, borderColor: captchaError ? 'tomato' : '#bbb', borderRadius: 4, padding: 8 }}
+                  />
+                </View>
+              ) : captchaVerified ? (
+                <Text style={{ fontSize: 12, color: '#2ecc71' }}>Captcha validé ✅</Text>
+              ) : (
+                <Text style={{ fontSize: 12, color: '#666' }}>Veuillez résoudre le captcha avant de soumettre.</Text>
+              )}
+              {!!captchaError && <Text testID="captcha-error" style={{ color: 'tomato', marginTop: 6, fontSize: 12 }}>{captchaError}</Text>}
+              {!captchaVerified && (
+                <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                  <Pressable
+                  testID="btn-refresh-captcha"
+                  onPress={async () => {
+                    setCaptchaLoading(true);
+                    setCaptchaVerified(false);
+                    setCaptchaError(null);
+                    setCaptchaAnswer('');
+                    try {
+                      const { data, secret } = await getCaptcha();
+                      const url = (() => {
+                        try {
+                          // Base64 is more reliable across browsers for inline SVG
+                          return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+                        } catch {
+                          return 'data:image/svg+xml;utf8,' + encodeURIComponent(data);
+                        }
+                      })();
+                      setCaptchaSecret(secret);
+                      setCaptchaSvgUrl(url);
+                      if (process.env.NODE_ENV !== 'production') {
+                        try { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, captchaSecret: secret }; } catch {}
+                      }
+                    } catch {
+                      setCaptchaError('Erreur de chargement du captcha');
+                    } finally {
+                      setCaptchaLoading(false);
+                    }
+                  }}
+                  style={{ backgroundColor: '#ddd', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 4, marginRight: 8 }}
+                >
+                  <Text style={{ color: '#333', fontWeight: '600' }}>{captchaLoading ? 'Chargement…' : 'Rafraîchir le captcha'}</Text>
+                  </Pressable>
+                  <Pressable
+                  testID="btn-validate-captcha"
+                  onPress={async () => {
+                    setCaptchaError(null);
+                    setCaptchaLoading(true);
+                    try {
+                      let ok = false;
+                      if (process.env.NODE_ENV !== 'production' && (window as any)?.PFM_TEST?.forceCaptchaAnswer) {
+                        ok = String((window as any).PFM_TEST.forceCaptchaAnswer).toLowerCase() === String(captchaAnswer).toLowerCase().trim();
+                      } else {
+                        ok = await verifyCaptcha(captchaSecret!, captchaAnswer);
+                      }
+                      if (!ok) {
+                        setCaptchaError('Captcha incorrect');
+                        // Auto-refresh for next attempt
+                        try {
+                          const { data, secret } = await getCaptcha();
+                          const url = (() => {
+                            try { return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data))); }
+                            catch { return 'data:image/svg+xml;utf8,' + encodeURIComponent(data); }
+                          })();
+                          setCaptchaSecret(secret);
+                          setCaptchaSvgUrl(url);
+                          setCaptchaAnswer('');
+                          if (process.env.NODE_ENV !== 'production') {
+                            try { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, captchaSecret: secret }; } catch {}
+                          }
+                        } catch {}
+                        return;
+                      }
+                      setCaptchaVerified(true);
+                    } catch {
+                      setCaptchaError('Erreur de vérification');
+                    } finally {
+                      setCaptchaLoading(false);
+                    }
+                  }}
+                  style={{ backgroundColor: '#0b3d91', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 4 }}
+                >
+                    <Text style={{ color: 'white', fontWeight: '600' }}>Valider le captcha</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Pressable testID="btn-submit-spot"
-              disabled={submitting}
+              disabled={submitting || !captchaVerified}
               onPress={async () => {
               setSubmitMessage(null);
               const v = validateForm(form);
@@ -387,7 +529,28 @@ export default function App() {
               if (Object.keys(v).length) {
                 return;
               }
+              // Captcha must be validated before submission
+              if (!captchaVerified) {
+                setSubmitMessage('Veuillez valider le captcha.');
+                return;
+              }
               setSubmitting(true);
+              // Dev-only fast path to avoid backend dependency in E2E
+              if (process.env.NODE_ENV !== 'production') {
+                try {
+                  const pfm = (window as any)?.PFM_TEST;
+                  if (pfm?.forceSubmitError) {
+                    setSubmitMessage('Erreur: ' + String(pfm.forceSubmitError));
+                    setSubmitting(false);
+                    return;
+                  }
+                  if (pfm?.forceSubmitOk) {
+                    setSubmitMessage('✅ Spot soumis. En attente de modération.');
+                    setSubmitting(false);
+                    return;
+                  }
+                } catch {}
+              }
               try {
                 // Build payload
                 const base: any = {
@@ -427,7 +590,15 @@ export default function App() {
                 setSubmitting(false);
               }
               }}
-              style={{ backgroundColor: '#0b3d91', padding: 12, borderRadius: 6, opacity: submitting ? 0.6 : 1, marginRight: 8 }}
+              style={{
+                backgroundColor: (submitting || !captchaVerified) ? '#5f78a8' : '#0b3d91',
+                padding: 12,
+                borderRadius: 6,
+                opacity: (submitting || !captchaVerified) ? 0.6 : 1,
+                marginRight: 8,
+                // RN Web-only styling improves affordance
+                cursor: (submitting || !captchaVerified) ? 'not-allowed' as any : 'pointer' as any
+              }}
             >
               <Text style={{ textAlign: 'center', color: 'white', fontWeight: '600' }}>
                 {submitting ? 'Envoi…' : 'Soumettre'}

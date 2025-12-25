@@ -95,3 +95,75 @@ EXPO_PUBLIC_ADMIN_TOKEN="votre-jeton-solide" npm run web
 Notes:
 - Ne commitez pas le token dans Git. Préférez des secrets CI/CD ou AWS SSM/Secrets Manager.
 - Pour une vraie prod multi-utilisateurs, envisagez Cognito/IDP + rôles plutôt qu’un token statique.
+
+## Captcha (svgCaptcha) — Configuration
+Deux endpoints backend existent pour le captcha:
+
+- `GET /captcha` → génère un SVG et un "secret" (le texte chiffré)
+- `POST /captcha/verify` → vérifie `{ secret, answer }` et renvoie `{ ok: true|false }`
+
+Clé privée et variable d’environnement:
+
+- Nom de la variable d’env: `CAPTCHA_PRIVATE_KEY`
+- Cette valeur n’est pas la clé binaire elle‑même: le backend dérive une clé AES‑256 à partir de votre chaîne via SHA‑256.
+- Utilisez une chaîne à forte entropie (32+ octets aléatoires) et ne la commitez jamais.
+
+Générer une clé forte (au choix):
+
+```bash
+# Hex 64 chars (32 octets)
+openssl rand -hex 32
+
+# Base64 ~44 chars (32 octets)
+openssl rand -base64 32
+
+# Avec Node.js
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Local (serverless-offline):
+
+```bash
+cd backend
+export CAPTCHA_PRIVATE_KEY="<votre-chaîne-secrète>"
+npx serverless offline --stage dev
+# GET http://localhost:3000/captcha
+# POST http://localhost:3000/captcha/verify { secret, answer }
+```
+
+Déploiement (Serverless):
+
+```bash
+cd backend
+CAPTCHA_PRIVATE_KEY="<votre-chaîne-secrète>" npx serverless deploy
+```
+
+AWS Console (alternatif):
+- Ouvrez chaque Lambda
+- Configuration → Environment variables
+- Ajoutez `CAPTCHA_PRIVATE_KEY` avec la même valeur pour toutes les fonctions
+
+GitHub (Secrets):
+- Définissez un secret de dépôt nommé `CAPTCHA_PRIVATE_KEY` (Settings → Secrets and variables → Actions)
+- Dans votre workflow (deploy), exportez ce secret vers l’environnement du job ou du step qui appelle `serverless deploy`:
+
+```yaml
+# Exemple minimal
+jobs:
+	deploy:
+		runs-on: ubuntu-latest
+		steps:
+			- uses: actions/checkout@v4
+			- uses: actions/setup-node@v4
+				with: { node-version: '20' }
+			- run: npm ci && cd backend && npm ci
+			- name: Deploy
+				run: cd backend && npx serverless deploy
+				env:
+					CAPTCHA_PRIVATE_KEY: ${{ secrets.CAPTCHA_PRIVATE_KEY }}
+					ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+```
+
+Sécurité:
+- Ne divulguez jamais `CAPTCHA_PRIVATE_KEY`. Utilisez GitHub Secrets, SSM, ou Secrets Manager.
+- Changez‑la régulièrement si possible.

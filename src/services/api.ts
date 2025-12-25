@@ -74,3 +74,22 @@ export async function checkAdminPassword(password: string): Promise<boolean> {
   const data = await res.json();
   return !!data.match;
 }
+
+export async function getCaptcha(): Promise<{ data: string; secret: string }> {
+  const base = getBaseUrl();
+  const res = await fetch(`${base}/captcha`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as { data: string; secret: string };
+}
+
+export async function verifyCaptcha(secret: string, answer: string): Promise<boolean> {
+  const base = getBaseUrl();
+  const res = await fetch(`${base}/captcha/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret, answer })
+  });
+  if (!res.ok) return false;
+  const out = await res.json();
+  return !!out.ok;
+}

@@ -46,6 +46,14 @@ curl -s -X PATCH http://localhost:3000/admin/spots/s1 \
   -H "Authorization: Bearer dev" \
   -H "Content-Type: application/json" \
   -d '{"moderationNote":"ok","status":"approved"}' | jq
+
+# Captcha (nécessite CAPTCHA_PRIVATE_KEY)
+export CAPTCHA_PRIVATE_KEY="<votre-chaîne-secrète>"
+curl -s http://localhost:3000/captcha | jq
+# Supposons que la réponse soit { data, secret }; l'utilisateur humain lit le SVG et répond
+curl -s -X POST http://localhost:3000/captcha/verify \
+  -H "Content-Type: application/json" \
+  -d '{"secret":"<secret>","answer":"<texte-lu-dans-le-SVG>"}' | jq
 ```
 
 Tests unitaires

@@ -23,13 +23,37 @@ test.describe('Soumission d\'une proposition', () => {
     await page.getByPlaceholder('Longueur (m)').fill('10');
     await page.getByPlaceholder('Adresse').fill('Quai Test 75000');
     await page.getByPlaceholder('Description').fill('Spot inséré via test e2e');
-      // Soumettre -> backend local peut ne pas être dispo, on accepte échec contrôlé
-      await page.locator('[data-testid="btn-submit-spot"]').click();
-      // Attendre un indicateur d'état: Envoi… OU message de résultat
-      try { await expect(page.getByText('Envoi…')).toBeVisible({ timeout: 2000 }); } catch {}
-      await Promise.race([
-        page.waitForSelector('text=Erreur:', { timeout: 15000 }),
-        page.waitForSelector('text=✅ Spot soumis', { timeout: 15000 })
-      ]);
+      // Soumettre -> captcha requis désormais
+    await page.locator('[data-testid="btn-submit-spot"]').click();
+  await expect(page.getByTestId('captcha-section')).toBeVisible();
+  await expect(page.getByTestId('captcha-image')).toBeVisible();
+      // Disabled appearance prior to validation
+      const submitBtn = page.getByTestId('btn-submit-spot');
+      await expect(submitBtn).toHaveAttribute('aria-disabled', 'true');
+      const cssDisabled = await submitBtn.evaluate((el) => {
+        const s = window.getComputedStyle(el as HTMLElement);
+        return { opacity: s.opacity, cursor: s.cursor };
+      });
+      expect(Number(cssDisabled.opacity)).toBeLessThan(1);
+      expect(cssDisabled.cursor).toBe('not-allowed');
+  // Valider le captcha via override et bouton
+  await page.evaluate(() => { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, forceCaptchaAnswer: 'ok123', forceSubmitOk: true }; });
+  await page.getByTestId('captcha-input').fill('ok123');
+  await page.getByTestId('btn-validate-captcha').click();
+      // Enabled appearance after validation
+      await expect(submitBtn).not.toHaveAttribute('aria-disabled', 'true');
+      const cssEnabled = await submitBtn.evaluate((el) => {
+        const s = window.getComputedStyle(el as HTMLElement);
+        return { opacity: s.opacity, cursor: s.cursor };
+      });
+      expect(Number(cssEnabled.opacity)).toBe(1);
+      expect(cssEnabled.cursor).toBe('pointer');
+  // Captcha UI hidden after validation
+  await expect(page.getByTestId('captcha-image')).toHaveCount(0);
+  await expect(page.getByTestId('btn-validate-captcha')).toHaveCount(0);
+  await expect(page.getByTestId('btn-refresh-captcha')).toHaveCount(0);
+  // Soumettre
+  await page.locator('[data-testid="btn-submit-spot"]').click();
+  await expect(page.getByText('✅ Spot soumis', { exact: false })).toBeVisible();
   });
 });
