@@ -79,6 +79,8 @@ export default function App() {
   const [adminPass, setAdminPass] = useState<string>('');
   const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
   const [adminAuthLoading, setAdminAuthLoading] = useState<boolean>(false);
+  // Store md5 of the admin password after successful authentication; never expose server ADMIN_TOKEN
+  const [adminMd5Token, setAdminMd5Token] = useState<string | null>(null);
   const [form, setForm] = useState<any>({
     type: 'ponton',
     name: '',
@@ -321,6 +323,8 @@ export default function App() {
                   if (ok) {
                     setAdmin(true);
                     setAdminPrompt(false);
+                    // Save md5 of the provided password for subsequent admin API calls
+                    try { setAdminMd5Token(md5hash(adminPass)); } catch {}
                     setAdminPass('');
                     try { localStorage.setItem('pfm-admin-auth', 'ok'); } catch {}
                   } else {
@@ -647,7 +651,7 @@ export default function App() {
           }}
         />
       ) : (
-        <AdminPanel onExit={() => setAdmin(false)} />
+        <AdminPanel md5Token={adminMd5Token ?? undefined} onExit={() => setAdmin(false)} />
       )}
       
       {!!error && !showForm && (
@@ -659,7 +663,7 @@ export default function App() {
   );
 }
 
-function AdminPanel({ onExit }: { onExit?: () => void }) {
+function AdminPanel({ onExit, md5Token }: { onExit?: () => void; md5Token?: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -672,8 +676,8 @@ function AdminPanel({ onExit }: { onExit?: () => void }) {
   const [statusFilter, setStatusFilter] = useState<'all'|'pending'|'approved'|'rejected'>('pending');
   const size = 20;
   const base = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-  const adminToken = process.env.EXPO_PUBLIC_ADMIN_TOKEN || 'dev';
-  const adminMd5 = md5hash(adminToken);
+  // Use md5 provided by successful admin login; do not expose ADMIN_TOKEN to the client
+  const adminMd5 = md5Token || '';
 
   async function fetchPending() {
     try {
@@ -791,7 +795,7 @@ function AdminPanel({ onExit }: { onExit?: () => void }) {
           <Text style={{ width: 240, fontWeight: '600' }}>Actions</Text>
         </View>
         {pageAssocItems.map((s) => (
-          <AdminRow key={s.spotId} spot={s} onChanged={fetchPending} selected={selectedId === s.spotId} />
+          <AdminRow key={s.spotId} spot={s} adminMd5={adminMd5} onChanged={fetchPending} selected={selectedId === s.spotId} />
         ))}
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
@@ -819,7 +823,7 @@ function AdminPanel({ onExit }: { onExit?: () => void }) {
           <Text style={{ width: 240, fontWeight: '600' }}>Actions</Text>
         </View>
         {pagePontonItems.map((s) => (
-          <AdminRow key={s.spotId} spot={s} onChanged={fetchPending} selected={selectedId === s.spotId} />
+          <AdminRow key={s.spotId} spot={s} adminMd5={adminMd5} onChanged={fetchPending} selected={selectedId === s.spotId} />
         ))}
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
@@ -843,13 +847,11 @@ function AdminPanel({ onExit }: { onExit?: () => void }) {
     </ScrollView>
   );
 }
-function AdminRow({ spot, onChanged, selected }: { spot: any; onChanged?: () => void; selected?: boolean }) {
+function AdminRow({ spot, onChanged, selected, adminMd5 }: { spot: any; onChanged?: () => void; selected?: boolean; adminMd5: string }) {
   const [f, setF] = useState<any>({ ...spot });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const base = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-  const adminToken = process.env.EXPO_PUBLIC_ADMIN_TOKEN || 'dev';
-  const adminMd5 = md5hash(adminToken);
 
   async function save(status?: 'approved'|'rejected') {
     setSaving(true);

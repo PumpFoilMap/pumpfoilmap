@@ -30,10 +30,22 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::527220914588:role/PumpfoilMapDeployer
           aws-region: eu-west-3
+      - name: Inject admin token (from ADMIN_TOKEN secret)
+        run: |
+          ADMIN_SECRET="${{ secrets.ADMIN_TOKEN }}"
+          if [ -n "$ADMIN_SECRET" ]; then
+            # Backend uses ADMIN_TOKEN; frontend reads EXPO_PUBLIC_ADMIN_TOKEN
+            echo "ADMIN_TOKEN=$ADMIN_SECRET" >> "$GITHUB_ENV"
+            echo "EXPO_PUBLIC_ADMIN_TOKEN=$ADMIN_SECRET" >> "$GITHUB_ENV"
+            echo "Admin token: present (masked)"
+          else
+            echo "ADMIN_TOKEN secret not provided; admin endpoints may use defaults" >&2
+          fi
       - name: Deploy backend
         run: |
           cd backend
           npm ci
+
           npx serverless deploy --stage prod
       - name: Discover API base URL (prod)
         run: |
