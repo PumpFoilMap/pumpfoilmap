@@ -45,7 +45,7 @@ jobs:
         run: |
           cd backend
           npm ci
-
+          export CAPTCHA_PRIVATE_KEY="${{ secrets.CAPTCHA_PRIVATE_KEY }}"
           npx serverless deploy --stage prod
       - name: Discover API base URL (prod)
         run: |
