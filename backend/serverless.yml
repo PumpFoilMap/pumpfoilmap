@@ -9,13 +9,14 @@ plugins:
 provider:
   name: aws
   runtime: nodejs20.x
-  region: eu-west-3
+  region: eu-west-1
   stage: dev
   httpApi:
     cors: true
   environment:
     TABLE_SPOTS: ${self:service}-${sls:stage}-Spots
     ADMIN_TOKEN: ${env:ADMIN_TOKEN, 'dev'}
+    ADMIN_MAIL: ${env:ADMIN_MAIL, ''}
     # Propagate local toggles into Lambda env
     USE_INMEMORY: ${env:USE_INMEMORY, ''}
     DYNAMODB_ENDPOINT: ${env:DYNAMODB_ENDPOINT, ''}
@@ -33,6 +34,11 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [SpotsTable, Arn]
+        - Effect: Allow
+          Action:
+            - ses:SendEmail
+            - ses:SendRawEmail
+          Resource: '*'
 
 functions:
   getSpots:
@@ -117,6 +123,13 @@ functions:
     events:
       - httpApi:
           path: /captcha/verify
+          method: post
+
+  adminSendMail:
+    handler: src/handlers/adminSendMail.handler
+    events:
+      - httpApi:
+          path: /admin/send-mail
           method: post
 
 resources:

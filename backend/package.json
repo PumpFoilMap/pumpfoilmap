@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.654.0",
+    "@aws-sdk/client-ses": "^3.958.0",
     "@aws-sdk/lib-dynamodb": "^3.654.0",
     "svg-captcha": "^1.4.0",
     "uuid": "^9.0.1",

@@ -4,6 +4,8 @@ import axios from 'axios';
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { handler as getSpots } from '../src/handlers/getSpots';
 import { handler as postSpot } from '../src/handlers/postSpot';
+import { handler as adminSendMail } from '../src/handlers/adminSendMail';
+import { createHash } from 'node:crypto';
 
 jest.setTimeout(60_000);
 
@@ -88,6 +90,22 @@ describe('E2E (Express wrapper)', () => {
         return;
       }
 
+      if (method === 'POST' && urlObj.pathname === '/admin/send-mail') {
+        const json = await readJsonBody(req);
+        const event = toApiGwEvent(req, json);
+        const out = (await adminSendMail(event as any)) as APIGatewayProxyResultV2 | string;
+        const normalized =
+          typeof out === 'string'
+            ? { statusCode: 200, headers: {}, body: out }
+            : out;
+        if (normalized.headers) {
+          for (const [k, v] of Object.entries(normalized.headers)) res.setHeader(k, String(v));
+        }
+        res.statusCode = normalized.statusCode || 200;
+        res.end(normalized.body);
+        return;
+      }
+
       res.statusCode = 404;
       res.end(JSON.stringify({ message: 'Not found' }));
     });
@@ -117,5 +135,28 @@ describe('E2E (Express wrapper)', () => {
     expect(getRes.status).toBe(200);
     const { items } = getRes.data as { items: any[] };
     expect(items.find((s) => s.spotId === created.spotId)).toBeTruthy();
+  });
+
+  it('POST /admin/send-mail returns ok when authorized and ADMIN_MAIL set', async () => {
+    process.env.ADMIN_TOKEN = 'dev';
+    process.env.ADMIN_MAIL = 'dev@example.com';
+    const md5 = createHash('md5').update(String(process.env.ADMIN_TOKEN)).digest('hex');
+    // Mock SES client via virtual module
+    jest.resetModules();
+    jest.doMock('@aws-sdk/client-ses', () => {
+      return {
+        SESClient: jest.fn().mockImplementation(() => ({
+          send: jest.fn().mockResolvedValue({ MessageId: 'mid-123' })
+        })),
+        SendEmailCommand: jest.fn().mockImplementation((x:any) => x)
+      };
+    }, { virtual: true });
+    const res = await axios.post(`${BASE}/admin/send-mail`, { subject: 'Test', message: 'Hello' }, {
+      validateStatus: () => true,
+      headers: { Authorization: `Bearer ${md5}` }
+    });
+    expect(res.status).toBe(200);
+    expect(res.data.ok).toBe(true);
+    expect(res.data.messageId).toBeDefined();
   });
 });
