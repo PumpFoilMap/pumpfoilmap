@@ -36,6 +36,7 @@ export const handler = async (
 
     // Async notifications via SES (best-effort, do not fail submission on email errors)
     const adminMail = (process.env.ADMIN_MAIL || '').trim();
+    console.info('[submitSpot] admin email', { adminMail });
     if (adminMail) {
       const adminSubject = 'PumpFoilMap — Nouveau spot soumis';
       const adminText = `Un nouveau spot a été soumis:\n
