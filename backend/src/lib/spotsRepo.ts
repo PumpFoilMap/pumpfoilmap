@@ -272,3 +272,20 @@ export async function deleteSpot(spotId: string): Promise<boolean> {
   if (DEBUG) console.log('[repo] ddb Delete result', { existed });
   return existed;
 }
+
+export async function getSpotById(spotId: string): Promise<Spot | null> {
+  if (USE_INMEMORY) {
+    const arr = readStore();
+    return arr.find((s) => s.spotId === spotId) || null;
+  }
+  const [{ ddb, TABLE_SPOTS, ensureSpotsTable }, { GetCommand }] = await Promise.all([
+    import('./db'),
+    import('@aws-sdk/lib-dynamodb')
+  ]);
+  if (typeof ensureSpotsTable === 'function') {
+    await ensureSpotsTable();
+  }
+  const params = { TableName: TABLE_SPOTS, Key: { spotId } } as const;
+  const res = await ddb.send(new GetCommand(params));
+  return (res.Item as Spot) || null;
+}

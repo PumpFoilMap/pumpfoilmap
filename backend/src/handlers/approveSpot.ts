@@ -1,6 +1,7 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { updateSpotStatus } from '../lib/spotsRepo';
 import { authorizeAdmin } from '../lib/adminAuth';
+import { sendEmail } from '../lib/email';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +24,15 @@ export const handler = async (
     const updated = await updateSpotStatus(spotId, 'approved');
     if (!updated) {
       return { statusCode: 404, headers: cors, body: JSON.stringify({ message: 'Not found' }) };
+    }
+    // Notify author if contactEmail present
+    const author = (updated as any)?.contactEmail as string | undefined;
+    if (author) {
+      const subject = 'PumpFoilMap — Votre soumission a été approuvée';
+      const text = `Bonjour,\n\nVotre soumission (ID: ${updated.spotId}${updated?.name ? `, Nom: ${updated.name}` : ''}) a été approuvée.\nMerci pour votre contribution !`;
+      sendEmail({ to: author, subject, text }).catch((e: any) => {
+        console.error('[approveSpot] author email failed', { name: e?.name, message: e?.message });
+      });
     }
     return { statusCode: 200, headers: cors, body: JSON.stringify({ spotId: updated.spotId, status: updated.status }) };
   } catch (err) {

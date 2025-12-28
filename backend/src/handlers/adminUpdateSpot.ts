@@ -2,6 +2,7 @@ import type { APIGatewayProxyStructuredResultV2, APIGatewayProxyEventV2 } from '
 // import { SpotSchema, type Spot } from '../lib/models';
 import { updateSpotFields } from '../lib/spotsRepo';
 import { authorizeAdmin } from '../lib/adminAuth';
+import { sendEmail } from '../lib/email';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +27,20 @@ export const handler = async (
     for (const k of allowed) if (k in body) patch[k] = body[k];
     const updated = await updateSpotFields(spotId, patch);
     if (!updated) return { statusCode: 404, headers: cors, body: JSON.stringify({ message: 'Not found' }) };
+    // Notify author if contactEmail present
+    const author = (updated as any)?.contactEmail as string | undefined;
+    if (author) {
+      const subject = 'PumpFoilMap — Votre soumission a été mise à jour';
+      const changed = Object.keys(patch);
+      const text = `Bonjour,
+
+Votre soumission (ID: ${spotId}${updated?.name ? `, Nom: ${updated.name}` : ''}) a été mise à jour par un administrateur.
+Champs modifiés: ${changed.join(', ') || 'aucun'}.
+${patch.moderationNote ? `Note de modération: ${String(patch.moderationNote)}` : ''}`;
+      sendEmail({ to: author, subject, text }).catch((e: any) => {
+        console.error('[adminUpdateSpot] author email failed', { name: e?.name, message: e?.message });
+      });
+    }
     return { statusCode: 200, headers: cors, body: JSON.stringify(updated) };
   } catch (err) {
     console.error(err);

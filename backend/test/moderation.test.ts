@@ -9,6 +9,15 @@ const os = require('node:os');
 const STORE = path.join(os.tmpdir(), 'pfm-inmemory-spots.json');
 try { fs.unlinkSync(STORE); } catch {}
 
+jest.doMock('@aws-sdk/client-ses', () => {
+  return {
+    SESClient: jest.fn().mockImplementation(() => ({
+      send: jest.fn().mockResolvedValue({ MessageId: 'mid-moderation' })
+    })),
+    SendEmailCommand: jest.fn().mockImplementation((input: any) => input)
+  };
+}, { virtual: true });
+
 import { handler as submitHandler } from '../src/handlers/submitSpot';
 import { handler as approveHandler } from '../src/handlers/approveSpot';
 import { handler as rejectHandler } from '../src/handlers/rejectSpot';
@@ -18,23 +27,35 @@ import { createHash } from 'node:crypto';
 function md5(s: string) { return createHash('md5').update(s).digest('hex'); }
 
 describe('Moderation flow', () => {
+  const ses = require('@aws-sdk/client-ses');
+  beforeEach(() => {
+    ses.SendEmailCommand.mockClear();
+  });
   it('submits then approves a spot', async () => {
     const submitPayload = {
       type: 'association',
       name: 'Assoc 1',
       lat: 1,
       lng: 2,
-      submittedBy: 'alice'
+      submittedBy: 'alice',
+      contactEmail: 'alice@example.com'
     };
     const submitRes = await submitHandler({ body: JSON.stringify(submitPayload) } as any);
     expect(submitRes.statusCode).toBe(202);
     const submitBody = JSON.parse(submitRes.body as string);
+    // Clear submission emails
+    ses.SendEmailCommand.mockClear();
 
     // Approve
   const approveRes = await approveHandler({ pathParameters: { id: submitBody.spotId }, headers: { authorization: `Bearer ${md5('dev')}` } } as any);
     expect(approveRes.statusCode).toBe(200);
     const approveBody = JSON.parse(approveRes.body as string);
     expect(approveBody.status).toBe('approved');
+    // One email to author for approval
+    const calls = ses.SendEmailCommand.mock.calls.map((args: any[]) => args[0]);
+    expect(calls.length).toBe(1);
+    expect(calls[0].Destination.ToAddresses).toEqual(['alice@example.com']);
+    expect(calls[0].Source).toBe('no-reply@pumpfoilmap.org');
 
     // Reject (should flip to rejected)
   const rejectRes = await rejectHandler({ pathParameters: { id: submitBody.spotId }, headers: { authorization: `Bearer ${md5('dev')}` } } as any);
