@@ -125,12 +125,7 @@ functions:
           path: /captcha/verify
           method: post
 
-  adminSendMail:
-    handler: src/handlers/adminSendMail.handler
-    events:
-      - httpApi:
-          path: /admin/send-mail
-          method: post
+
 
 resources:
   Resources:
