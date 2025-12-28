@@ -25,7 +25,7 @@ export const handler = async (
     })();
   const subject = (body?.subject || 'PumpFoilMap notification') as string;
   const message = (body?.message || 'Bonjour,\nUn événement administrateur a été déclenché.') as string;
-    const result = await sendEmail({ to: adminMail, subject, text: message, source: adminMail });
+  const result = await sendEmail({ to: adminMail, subject, text: message });
     return { statusCode: 200, headers: cors, body: JSON.stringify({ ok: result.ok, messageId: result.messageId }) };
   } catch (err: any) {
     console.error('[adminSendMail] error', { name: err?.name, message: err?.message, stack: err?.stack });
