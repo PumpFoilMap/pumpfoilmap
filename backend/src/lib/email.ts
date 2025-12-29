@@ -2,7 +2,8 @@
 type SesClientLike = { send: (cmd: any) => Promise<any> };
 
 export async function sendEmail(params: { to: string; subject: string; text: string; html?: string }): Promise<{ ok: boolean; messageId?: string }> {
-  const { to, subject, text, html } = params;
+  console.info('[email] send to', params );
+    const { to, subject, text, html } = params;
   if (!to || !subject || !text) throw new Error('Missing required email fields');
   const sesMod = require('@aws-sdk/client-ses');
   const SESClient: new (...args: any[]) => SesClientLike = sesMod.SESClient;
@@ -17,7 +18,15 @@ export async function sendEmail(params: { to: string; subject: string; text: str
     },
     Source: 'no-reply@pumpfoilmap.org'
   };
-  const cmd = new SendEmailCommand(input);
-  const resp = await client.send(cmd);
-  return { ok: true, messageId: resp?.MessageId };
+  console.info('[email] send with', { input });
+
+  try {
+    const cmd = new SendEmailCommand(input);
+    const resp = await client.send(cmd);
+    console.info('[email] sent', { to, messageId: resp?.MessageId });
+    return { ok: true, messageId: resp?.MessageId };
+  } catch (err) {
+    console.error('[email] send failed', { to, error: err });
+    return { ok: false };
+  }
 }

@@ -255,7 +255,7 @@ export default function App() {
                 accessibilityLabel="PumpfoilMap logo"
               />
             ) : null}
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>
+            <Text testID="app-title" style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>
               PumpfoilMap — Spots
             </Text>
           </View>

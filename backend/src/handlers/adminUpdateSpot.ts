@@ -31,11 +31,9 @@ export const handler = async (
     const author = (updated as any)?.contactEmail as string | undefined;
     if (author) {
       const subject = 'PumpFoilMap — Votre soumission a été mise à jour';
-      const changed = Object.keys(patch);
       const text = `Bonjour,
 
 Votre soumission (ID: ${spotId}${updated?.name ? `, Nom: ${updated.name}` : ''}) a été mise à jour par un administrateur.
-Champs modifiés: ${changed.join(', ') || 'aucun'}.
 ${patch.moderationNote ? `Note de modération: ${String(patch.moderationNote)}` : ''}`;
       sendEmail({ to: author, subject, text }).catch((e: any) => {
         console.error('[adminUpdateSpot] author email failed', { name: e?.name, message: e?.message });

@@ -38,19 +38,21 @@ export const handler = async (
     const adminMail = (process.env.ADMIN_MAIL || '').trim();
     console.info('[submitSpot] admin email', { adminMail });
     if (adminMail) {
-      const adminSubject = 'PumpFoilMap — Nouveau spot soumis';
-      const adminText = `Un nouveau spot a été soumis:\n
+      const subject = 'PumpFoilMap — Nouveau spot soumis';
+      const text = `Un nouveau spot a été soumis:\n
 Nom: ${spot.name}\nType: ${spot.type}\nCoordonnées: lat ${spot.lat}, lng ${spot.lng}\nSoumis par: ${spot.submittedBy}\nSpot ID: ${spot.spotId}`;
       // Fire and forget
-      sendEmail({ to: adminMail, subject: adminSubject, text: adminText }).catch((e: any) => {
+      console.info('[submitSpot] sending admin email', { to: adminMail, subject });
+      sendEmail({ to: adminMail, subject, text }).catch((e: any) => {
         console.error('[submitSpot] admin email failed', { name: e?.name, message: e?.message });
       });
       // Notify author if contactEmail provided
       const author = (spot as any).contactEmail as string | undefined;
+      console.info('[submitSpot] author email', { author });
       if (author) {
-        const userSubject = 'PumpFoilMap — Votre soumission a été reçue';
-        const userText = `Bonjour ${spot.submittedBy},\n\nVotre soumission du spot "${spot.name}" a été reçue et sera modérée sous peu.\n\nIdentifiant: ${spot.spotId}\nMerci !`;
-        sendEmail({ to: author, subject: userSubject, text: userText }).catch((e: any) => {
+        const subject = 'PumpFoilMap — Votre soumission a été reçue';
+        const text = `Bonjour ${spot.submittedBy},\n\nVotre soumission du spot "${spot.name}" a été reçue et sera modérée sous peu.\n\nIdentifiant: ${spot.spotId}\nMerci !`;
+        sendEmail({ to: author, subject, text }).catch((e: any) => {
           console.error('[submitSpot] author email failed', { name: e?.name, message: e?.message });
         });
       }

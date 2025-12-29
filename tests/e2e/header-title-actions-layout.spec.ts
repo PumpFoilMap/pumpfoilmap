@@ -9,7 +9,7 @@ test.describe('Header layout', () => {
     await page.setViewportSize({ width: 1024, height: 800 });
     await page.goto('/');
 
-    const title = page.getByText('PumpfoilMap — Spots');
+  const title = page.getByTestId('app-title');
     const btnPonton = page.getByTestId('btn-add-ponton');
     const btnAssoc = page.getByTestId('btn-add-association');
 
@@ -37,7 +37,7 @@ test.describe('Header layout', () => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto('/');
 
-    const title = page.getByText('PumpfoilMap — Spots');
+  const title = page.getByTestId('app-title');
     const btnPonton = page.getByTestId('btn-add-ponton');
     const btnAssoc = page.getByTestId('btn-add-association');
 

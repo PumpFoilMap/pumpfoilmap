@@ -62,19 +62,7 @@ functions:
           path: /spots/submit
           method: post
 
-  approveSpot:
-    handler: src/handlers/approveSpot.handler
-    events:
-      - httpApi:
-          path: /spots/{id}/approve
-          method: post
 
-  rejectSpot:
-    handler: src/handlers/rejectSpot.handler
-    events:
-      - httpApi:
-          path: /spots/{id}/reject
-          method: post
 
   adminListPending:
     handler: src/handlers/adminListPending.handler
