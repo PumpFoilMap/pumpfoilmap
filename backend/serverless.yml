@@ -8,7 +8,7 @@ plugins:
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs22.x
   region: eu-west-1
   stage: dev
   httpApi:
@@ -134,7 +134,7 @@ custom:
     bundle: true
     minify: false
     sourcemap: true
-    target: node20
+    target: node22
     platform: node
     external:
       - aws-sdk
