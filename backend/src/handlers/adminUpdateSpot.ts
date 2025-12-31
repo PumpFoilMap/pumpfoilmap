@@ -35,9 +35,13 @@ export const handler = async (
 
 Votre soumission (ID: ${spotId}${updated?.name ? `, Nom: ${updated.name}` : ''}) a été mise à jour par un administrateur.
 ${patch.moderationNote ? `Note de modération: ${String(patch.moderationNote)}` : ''}`;
-      sendEmail({ to: author, subject, text }).catch((e: any) => {
-        console.error('[adminUpdateSpot] author email failed', { name: e?.name, message: e?.message });
-      });
+      try {
+        sendEmail({ to: author, subject, text }).catch((e: any) => {
+          console.error('[adminUpdateSpot] author email failed (async)', { name: e?.name, message: e?.message });
+        });
+      } catch (e: any) {
+        console.error('[adminUpdateSpot] author email failed (sync)', { name: e?.name, message: e?.message });
+      }
     }
     return { statusCode: 200, headers: cors, body: JSON.stringify(updated) };
   } catch (err) {
