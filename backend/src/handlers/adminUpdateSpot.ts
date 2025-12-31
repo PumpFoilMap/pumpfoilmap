@@ -30,18 +30,25 @@ export const handler = async (
     // Notify author if contactEmail present
     const author = (updated as any)?.contactEmail as string | undefined;
     if (author) {
-      const subject = 'PumpFoilMap — Votre soumission a été mise à jour';
+      // Adapt subject/text when status is changed (validation / non-validation)
+      const statusChanged = Object.prototype.hasOwnProperty.call(patch, 'status');
+      const statusVal = (patch as any).status as 'approved' | 'rejected' | 'pending' | undefined;
+      let subject = 'PumpFoilMap — Votre soumission a été mise à jour';
+      let actionLine = 'a été mise à jour par un administrateur.';
+      if (statusChanged && statusVal === 'approved') {
+        subject = 'PumpFoilMap — Votre soumission a été validée';
+        actionLine = 'a été validée par un administrateur.';
+      } else if (statusChanged && statusVal === 'rejected') {
+        subject = 'PumpFoilMap — Votre soumission a été rejetée';
+        actionLine = 'a été rejetée par un administrateur.';
+      }
       const text = `Bonjour,
 
-Votre soumission (ID: ${spotId}${updated?.name ? `, Nom: ${updated.name}` : ''}) a été mise à jour par un administrateur.
+Votre soumission (ID: ${spotId}${updated?.name ? `, Nom: ${updated.name}` : ''}) ${actionLine}
 ${patch.moderationNote ? `Note de modération: ${String(patch.moderationNote)}` : ''}`;
-      try {
-        sendEmail({ to: author, subject, text }).catch((e: any) => {
-          console.error('[adminUpdateSpot] author email failed (async)', { name: e?.name, message: e?.message });
-        });
-      } catch (e: any) {
-        console.error('[adminUpdateSpot] author email failed (sync)', { name: e?.name, message: e?.message });
-      }
+      sendEmail({ to: author, subject, text }).catch((e: any) => {
+        console.error('[adminUpdateSpot] author email failed', { name: e?.name, message: e?.message });
+      });
     }
     return { statusCode: 200, headers: cors, body: JSON.stringify(updated) };
   } catch (err) {

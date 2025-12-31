@@ -43,26 +43,18 @@ export const handler = async (
 Nom: ${spot.name}\nType: ${spot.type}\nCoordonnées: lat ${spot.lat}, lng ${spot.lng}\nSoumis par: ${spot.submittedBy}\nSpot ID: ${spot.spotId}`;
       // Fire and forget
       console.info('[submitSpot] sending admin email', { to: adminMail, subject });
-      try {
-        sendEmail({ to: adminMail, subject, text }).catch((e: any) => {
-          console.error('[submitSpot] admin email failed (async)', { name: e?.name, message: e?.message });
-        });
-      } catch (e: any) {
-        console.error('[submitSpot] admin email failed (sync)', { name: e?.name, message: e?.message });
-      }
+      sendEmail({ to: adminMail, subject, text }).catch((e: any) => {
+        console.error('[submitSpot] admin email failed', { name: e?.name, message: e?.message });
+      });
       // Notify author if contactEmail provided
       const author = (spot as any).contactEmail as string | undefined;
       console.info('[submitSpot] author email', { author });
       if (author) {
         const subject = 'PumpFoilMap — Votre soumission a été reçue';
         const text = `Bonjour ${spot.submittedBy},\n\nVotre soumission du spot "${spot.name}" a été reçue et sera modérée sous peu.\n\nIdentifiant: ${spot.spotId}\nMerci !`;
-        try {
-          sendEmail({ to: author, subject, text }).catch((e: any) => {
-            console.error('[submitSpot] author email failed (async)', { name: e?.name, message: e?.message });
-          });
-        } catch (e: any) {
-          console.error('[submitSpot] author email failed (sync)', { name: e?.name, message: e?.message });
-        }
+        sendEmail({ to: author, subject, text }).catch((e: any) => {
+          console.error('[submitSpot] author email failed', { name: e?.name, message: e?.message });
+        });
       }
     }
 

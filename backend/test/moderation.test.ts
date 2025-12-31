@@ -68,6 +68,7 @@ describe('Moderation flow', () => {
     expect(calls.length).toBe(1);
     expect(calls[0].Destination.ToAddresses).toEqual(['alice@example.com']);
     expect(calls[0].Source).toBe('no-reply@pumpfoilmap.org');
+    expect(calls[0].Message.Subject.Data).toBe('PumpFoilMap — Votre soumission a été validée');
 
     // Reject (flip to rejected) via adminUpdateSpot (PATCH)
     const rejectRes = await adminUpdate({
@@ -78,6 +79,11 @@ describe('Moderation flow', () => {
     expect(rejectRes.statusCode).toBe(200);
     const rejectBody = JSON.parse(rejectRes.body as string);
     expect(rejectBody.status).toBe('rejected');
+    const calls2 = ses.SendEmailCommand.mock.calls.map((args: any[]) => args[0]);
+    expect(calls2.length).toBe(2);
+    expect(calls2[1].Destination.ToAddresses).toEqual(['alice@example.com']);
+    expect(calls2[1].Source).toBe('no-reply@pumpfoilmap.org');
+  expect(calls2[1].Message.Subject.Data).toBe('PumpFoilMap — Votre soumission a été rejetée');
   });
 
   it('lists pending after submit (in-memory) then disappears after approval', async () => {
