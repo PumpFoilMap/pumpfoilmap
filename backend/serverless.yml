@@ -31,6 +31,7 @@ provider:
             - dynamodb:PutItem
             - dynamodb:UpdateItem
             - dynamodb:Scan
+            - dynamodb:GetItem
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [SpotsTable, Arn]
