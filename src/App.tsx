@@ -267,11 +267,46 @@ export default function App() {
             <ActionBar
               isCompact={typeof window !== 'undefined' && window.innerWidth < 600}
               onAddPonton={() => {
-                setForm((f: any) => ({ ...f, type: 'ponton' }));
+                // Reset all input fields when opening the submission form from the map
+                setForm({
+                  type: 'ponton',
+                  name: '',
+                  lat: '',
+                  lng: '',
+                  submittedBy: '',
+                  heightCm: '',
+                  lengthM: '',
+                  access: 'autorise',
+                  address: '',
+                  description: '',
+                  imageUrl: '',
+                  contactEmail: ''
+                });
+                setErrors({});
+                setSubmitMessage(null);
                 setShowForm(true);
               }}
               onAddAssociation={() => {
-                setForm((f: any) => ({ ...f, type: 'association' }));
+                // Reset all input fields when opening the submission form from the map
+                setForm({
+                  type: 'association',
+                  name: '',
+                  lat: '',
+                  lng: '',
+                  submittedBy: '',
+                  // Ponton-specific fields cleared
+                  heightCm: '',
+                  lengthM: '',
+                  access: 'autorise',
+                  address: '',
+                  description: '',
+                  imageUrl: '',
+                  contactEmail: '',
+                  // Association-specific
+                  url: ''
+                } as any);
+                setErrors({});
+                setSubmitMessage(null);
                 setShowForm(true);
               }}
               onAdmin={() => {
