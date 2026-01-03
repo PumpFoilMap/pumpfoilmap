@@ -63,7 +63,9 @@ test.describe('Soumission avec captcha', () => {
   // Submit
   await page.getByTestId('btn-submit-spot').click();
 
-  // Expect success message (short-circuited in dev)
-  await expect(page.getByText('Spot soumis', { exact: false })).toBeVisible();
+  // Expect success modal (short-circuited in dev)
+  await expect(page.getByTestId('submit-success-text')).toBeVisible();
+  await page.getByTestId('submit-success-ok').click();
+  await expect(page.getByTestId('map-container')).toBeVisible();
   });
 });

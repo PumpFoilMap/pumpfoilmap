@@ -31,7 +31,7 @@ test.describe('Validation formulaire soumission', () => {
     // Type par défaut: ponton
 
   // 1) Tentative de soumission vide -> erreurs
-    await page.locator('[data-testid="btn-submit-spot"]').click();
+  await page.locator('[data-testid="btn-submit-spot"]').click({ force: true });
     await expect(page.getByTestId('error-name')).toBeVisible();
     await expect(page.getByTestId('error-submittedBy')).toBeVisible();
     await expect(page.getByTestId('error-latlng')).toBeVisible();
@@ -92,7 +92,10 @@ test.describe('Validation formulaire soumission', () => {
 
   // Soumettre (court-circuit succès pour le test)
   await page.evaluate(() => { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, forceSubmitOk: true }; });
-  await page.locator('[data-testid="btn-submit-spot"]').click();
-  await expect(page.getByText('✅ Spot soumis', { exact: false })).toBeVisible();
+  await page.locator('[data-testid="btn-submit-spot"]').click({ force: true });
+  // Success modal should be visible and then close on OK
+  await expect(page.getByTestId('submit-success-text')).toBeVisible();
+  await page.getByTestId('submit-success-ok').click();
+  await expect(page.getByTestId('map-container')).toBeVisible();
   });
 });

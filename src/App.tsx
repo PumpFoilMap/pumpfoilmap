@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, TextInput, Pressable, ScrollView, Image } from 'react-native';
+import { SubmitSuccessModal } from './components/SubmitSuccessModal';
 import Map from './components/Map';
 import sampleData from './data/sample-spots.json';
 import { fetchSpots, submitSpot, type SubmitSpotInput, checkAdminPassword, getCaptcha, verifyCaptcha } from './services/api';
@@ -101,6 +102,7 @@ export default function App() {
   const [captchaVerified, setCaptchaVerified] = useState<boolean>(false);
   const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [captchaLoading, setCaptchaLoading] = useState<boolean>(false);
+  const [submitModalOpen, setSubmitModalOpen] = useState<boolean>(false);
 
   // Build a safe data URL for an inline SVG. Prefer base64 for cross-browser reliability.
   function buildSvgDataUrl(svg: string): string {
@@ -561,7 +563,8 @@ export default function App() {
                     return;
                   }
                   if (pfm?.forceSubmitOk) {
-                    setSubmitMessage('✅ Spot soumis. En attente de modération.');
+                    // In dev/E2E, show the success modal directly; defer to next tick to avoid click interception
+                    setTimeout(() => setSubmitModalOpen(true), 100);
                     setSubmitting(false);
                     return;
                   }
@@ -598,7 +601,8 @@ export default function App() {
                   } as any;
                 }
                 await submitSpot(payload);
-                setSubmitMessage('✅ Spot soumis. En attente de modération.');
+                // Show success modal instead of inline message
+                setSubmitModalOpen(true);
                 setForm((f: any) => ({ ...f, name: '', description: '' }));
               } catch (e: any) {
                 setSubmitMessage('Erreur: ' + e.message);
@@ -628,7 +632,7 @@ export default function App() {
               <Text style={{ color: '#333', fontWeight: '600' }}>Retour à la carte</Text>
             </Pressable>
           </View>
-          {submitMessage && (
+          {submitMessage && !submitModalOpen && (
             <Text style={{ marginTop: 12, color: submitMessage.startsWith('✅') ? 'green' : 'tomato' }}>
               {submitMessage}
             </Text>
@@ -659,6 +663,14 @@ export default function App() {
           <Text style={{ color: 'tomato' }}>{error}</Text>
         </View>
       )}
+      {/* Success modal after submission */}
+      <SubmitSuccessModal
+        visible={submitModalOpen}
+        onOk={() => {
+          setSubmitModalOpen(false);
+          setShowForm(false);
+        }}
+      />
     </View>
   );
 }

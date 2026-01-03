@@ -54,6 +54,10 @@ test.describe('Soumission d\'une proposition', () => {
   await expect(page.getByTestId('btn-refresh-captcha')).toHaveCount(0);
   // Soumettre
   await page.locator('[data-testid="btn-submit-spot"]').click();
-  await expect(page.getByText('✅ Spot soumis', { exact: false })).toBeVisible();
+  // Success modal appears
+  await expect(page.getByTestId('submit-success-text')).toBeVisible();
+  // Close via OK button -> returns to the map view
+  await page.getByTestId('submit-success-ok').click();
+  await expect(page.getByTestId('map-container')).toBeVisible();
   });
 });
