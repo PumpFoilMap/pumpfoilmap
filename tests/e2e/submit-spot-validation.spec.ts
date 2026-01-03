@@ -63,21 +63,13 @@ test.describe('Validation formulaire soumission', () => {
       window.PFM_TEST.pickAt(2.35, 48.85);
     });
 
-    // Valider de nouveau le captcha (la sélection sur carte ré-affiche le formulaire et recharge le captcha)
+    // Après sélection sur la carte, si le captcha était déjà validé, il ne doit pas redemander une nouvelle validation
     await expect(page.getByTestId('captcha-section')).toBeVisible();
-    await expect(page.getByTestId('captcha-image')).toBeVisible();
-    await page.evaluate(() => { (window as any).PFM_TEST = { ...(window as any).PFM_TEST, forceCaptchaAnswer: 'ok123' }; });
-    await page.getByTestId('captcha-input').fill('ok123');
-    await page.getByTestId('btn-validate-captcha').click();
     await expect(page.getByTestId('btn-submit-spot')).not.toHaveAttribute('aria-disabled', 'true');
-  // Captcha UI hidden after validation
-  await expect(page.getByTestId('captcha-image')).toHaveCount(0);
-  await expect(page.getByTestId('btn-validate-captcha')).toHaveCount(0);
-  await expect(page.getByTestId('btn-refresh-captcha')).toHaveCount(0);
-  // Captcha UI hidden after re-validation
-  await expect(page.getByTestId('captcha-image')).toHaveCount(0);
-  await expect(page.getByTestId('btn-validate-captcha')).toHaveCount(0);
-  await expect(page.getByTestId('btn-refresh-captcha')).toHaveCount(0);
+    // Captcha UI should remain hidden (image and buttons)
+    await expect(page.getByTestId('captcha-image')).toHaveCount(0);
+    await expect(page.getByTestId('btn-validate-captcha')).toHaveCount(0);
+    await expect(page.getByTestId('btn-refresh-captcha')).toHaveCount(0);
 
     // Erreurs doivent disparaître après nouvelle tentative
     await page.locator('[data-testid="btn-submit-spot"]').click();

@@ -207,6 +207,8 @@ export default function App() {
     let mounted = true;
     async function loadCaptchaOnFormOpen() {
       if (!showForm) return;
+      // If captcha was already validated previously, don't reset or fetch a new one
+      if (captchaVerified) return;
       // reset state and fetch a fresh captcha
       setCaptchaVerified(false);
       setCaptchaError(null);
